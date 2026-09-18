@@ -30,7 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: eqlabs/pathfinder
+          images: swmansion/pathfinder
       - name: Checkout sources
         uses: actions/checkout@v5
         with:
@@ -81,9 +81,18 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
-          tags: eqlabs/pathfinder:snapshot-${{ github.sha }}
+          tags: swmansion/pathfinder:snapshot-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # TODO(#3563): Remove block below and the EQLABS_* secrets once the migration window closes.
+      - name: Login to Docker Hub (legacy eqlabs namespace)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.EQLABS_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.EQLABS_DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Mirror snapshot to eqlabs/pathfinder
+        run: docker buildx imagetools create -t eqlabs/pathfinder:snapshot-${{ github.sha }} swmansion/pathfinder:snapshot-${{ github.sha }}
 
   # Add the release labels to the associated docker image.
   tag-release:
@@ -96,11 +105,23 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Tag image with release name
-        run: docker buildx imagetools create -t eqlabs/pathfinder:${{ github.event.release.tag_name }} eqlabs/pathfinder:snapshot-${{ github.sha }}
+        run: docker buildx imagetools create -t swmansion/pathfinder:${{ github.event.release.tag_name }} swmansion/pathfinder:snapshot-${{ github.sha }}
         # Only tag the image as 'latest' if its a release i.e. not a prerelease.
       - name: Tag image with 'latest'
         if: ${{ !github.event.release.prerelease }}
-        run: docker buildx imagetools create -t eqlabs/pathfinder:latest eqlabs/pathfinder:snapshot-${{ github.sha }}
+        run: docker buildx imagetools create -t swmansion/pathfinder:latest swmansion/pathfinder:snapshot-${{ github.sha }}
+
+      # TODO(#3563): Remove block below and the EQLABS_* secrets once the migration window closes.
+      - name: Login to Docker Hub (legacy eqlabs namespace)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.EQLABS_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.EQLABS_DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Mirror release tag to eqlabs/pathfinder
+        run: docker buildx imagetools create -t eqlabs/pathfinder:${{ github.event.release.tag_name }} swmansion/pathfinder:${{ github.event.release.tag_name }}
+      - name: Mirror 'latest' to eqlabs/pathfinder
+        if: ${{ !github.event.release.prerelease }}
+        run: docker buildx imagetools create -t eqlabs/pathfinder:latest swmansion/pathfinder:${{ github.event.release.tag_name }}
 
   # Dispatch the version bump workflow on pathfinder-infra
   update-infra:
@@ -113,6 +134,6 @@ jobs:
           GH_TOKEN: ${{ secrets.PATHFINDER_INFRA_DISPATCH_TOKEN }}
         run: |
           gh workflow run update-pathfinder-version.yml \
-            --repo equilibriumco/pathfinder-infra \
+            --repo software-mansion/pathfinder-infra \
             --ref main \
             --field version=${{ github.event.release.tag_name }}
