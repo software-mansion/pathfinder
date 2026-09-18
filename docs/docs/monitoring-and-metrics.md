@@ -26,7 +26,7 @@ docker run \
   --user "$(id -u):$(id -g)" \
   -e RUST_LOG=info \
   -e PATHFINDER_ETHEREUM_API_URL="wss://sepolia.infura.io/ws/v3/<project-id>" \
-  eqlabs/pathfinder \
+  swmansion/pathfinder \
   --monitor-address 0.0.0.0:9000
 ```
 

@@ -25,7 +25,7 @@ docker run \
   -e RUST_LOG=info \
   -e PATHFINDER_ETHEREUM_API_URL="wss://sepolia.infura.io/ws/v3/<project-id>" \
   -v $HOME/pathfinder:/usr/share/pathfinder/data \
-  eqlabs/pathfinder:latest \
+  swmansion/pathfinder:latest \
   --network mainnet \
   --monitor-address=0.0.0.0:9000 \
   --rpc.websocket.enabled \
@@ -87,7 +87,7 @@ Logging can be configured using the `RUST_LOG` environment variable.
 We recommend setting it when you start the container:
 
 ```bash
-docker run --name pathfinder [...] -e RUST_LOG=<log level> eqlabs/pathfinder:latest
+docker run --name pathfinder [...] -e RUST_LOG=<log level> swmansion/pathfinder:latest
 ```
 
 The following log levels are supported, from most to least verbose:
@@ -126,7 +126,7 @@ sudo docker run \
   --detach \
   -p 9545:9545 \
   -e RUST_LOG=info \
-  eqlabs/pathfinder:latest \
+  swmansion/pathfinder:latest \
   --network mainnet \
   --storage.state-tries=100
 ```
@@ -179,7 +179,7 @@ sudo docker run \
   --detach \
   -p 9545:9545 \
   -e RUST_LOG=info \
-  eqlabs/pathfinder:latest \
+  swmansion/pathfinder:latest \
   --network mainnet \
   --storage.blockchain-history=100
 ```
@@ -246,7 +246,7 @@ sudo docker run \
   -e "PATHFINDER_ETHEREUM_API_URL=wss://sepolia.infura.io/ws/v3/<project-id>" \
   -e "PATHFINDER_NETWORK=sepolia-testnet" \
   -e "RUST_LOG=debug" \
-  eqlabs/pathfinder:latest
+  swmansion/pathfinder:latest
 ```
 
 When running Pathfinder directly from source, set environment variables in this format:
