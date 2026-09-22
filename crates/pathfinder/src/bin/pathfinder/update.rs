@@ -127,8 +127,9 @@ async fn fetch_latest_github_release(
 ) -> UpdateResult {
     use reqwest::{StatusCode, Url};
 
-    let url = Url::parse("https://api.github.com/repos/software-mansion/pathfinder/releases/latest")
-        .unwrap();
+    let url =
+        Url::parse("https://api.github.com/repos/software-mansion/pathfinder/releases/latest")
+            .unwrap();
 
     let mut request = client.get(url);
 
