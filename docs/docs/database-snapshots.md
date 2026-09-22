@@ -46,9 +46,9 @@ There are two main ways to download and use a snapshot with Pathfinder:
 Add `-P` to get a progress display that helps you track the download status.
 :::
 
-## Downloading via HTTP
+## Downloading via HTTPS
 
-The snapshot endpoint currently uses HTTP. Use `--continue` so interrupted downloads can be resumed:
+While HTTPS URLs are also provided, direct HTTPS downloads can sometimes be less reliable for very large files. If you must use HTTPS, verify you can resume downloads or maintain a stable connection. For example:
 
 ```bash
 wget --continue http://rpc.pathfinder.swmansion.com/snapshots/latest/mainnet.sqlite.zst
