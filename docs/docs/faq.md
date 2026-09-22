@@ -5,7 +5,7 @@ slug: /faq
 
 # Frequently Asked Questions
 
-This section addresses common issues and questions that might arise while running or developing with Pathfinder. If you don’t find your answer here, consider searching the [GitHub issues](https://github.com/equilibriumco/pathfinder/issues) or asking in the [Starknet Discord channel](https://discord.com/invite/QypNMzkHbc).
+This section addresses common issues and questions that might arise while running or developing with Pathfinder. If you don’t find your answer here, consider searching the [GitHub issues](https://github.com/software-mansion/pathfinder/issues) or asking in the [Starknet Discord channel](https://discord.com/invite/QypNMzkHbc).
 
 <details>
 <summary><strong>What is Pathfinder?</strong></summary>
@@ -82,7 +82,7 @@ Yes, Pathfinder provides database snapshots that can be downloaded and used to s
 <details>
 <summary><strong>How can I contribute to Pathfinder?</strong></summary>
 
-You can contribute by opening issues, submitting pull requests, or joining the Starknet community on Discord to provide feedback and collaborate with other developers. For more details, refer to the [contribution guidelines](https://github.com/equilibriumco/pathfinder/blob/main/contributing.md).
+You can contribute by opening issues, submitting pull requests, or joining the Starknet community on Discord to provide feedback and collaborate with other developers. For more details, refer to the [contribution guidelines](https://github.com/software-mansion/pathfinder/blob/main/contributing.md).
 </details>
 
 <details>

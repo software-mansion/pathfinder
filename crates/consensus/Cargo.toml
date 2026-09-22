@@ -1,6 +1,7 @@
 [package]
 name = "pathfinder-consensus"
 description = "Pathfinder Consensus"
+repository = "https://github.com/software-mansion/pathfinder"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }

@@ -44,7 +44,7 @@ As with the [JSON extensions](json-rpc-api#pathfinder-json-extensions), Pathfind
 /ws/rpc/pathfinder/v0_1
 ```
 
-You can find the complete list of WebSocket extensions in the [Pathfinder repository](https://github.com/equilibriumco/pathfinder/blob/main/specs/rpc/pathfinder_ws.json).
+You can find the complete list of WebSocket extensions in the [Pathfinder repository](https://github.com/software-mansion/pathfinder/blob/main/specs/rpc/pathfinder_ws.json).
 
 ## Connection Limits and Keepalive
 

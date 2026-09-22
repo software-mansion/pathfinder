@@ -30,7 +30,7 @@ But then how did this ever work? It turns out most string encodings produce iden
 
 ## Resolution
 
-The [fix PR](https://github.com/equilibriumco/pathfinder/pull/1142) takes any non-ASCII characters and re-encodes them to match the formatting used by the sequencer. 
+The [fix PR](https://github.com/software-mansion/pathfinder/pull/1142) takes any non-ASCII characters and re-encodes them to match the formatting used by the sequencer.
 
 The PR was merged and Pathfinder v0.6.1 was released. The fix was also backported to create v0.5.7 for users who had not yet upgraded to v0.6.
 
@@ -81,4 +81,3 @@ All times given are in UTC.
 2023-06-18 11:30 API services back in sync and online
 2023-06-18 11:30 incident over
 `
-

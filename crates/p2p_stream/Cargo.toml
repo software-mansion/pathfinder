@@ -4,6 +4,7 @@ description = "Extension of libp2p-request-response that allows for streaming re
 authors = [
     "Parity Technologies <admin@parity.io>",
     "Equilibrium Labs <info@equilibrium.co>",
+    "Software Mansion <contact@swmansion.com>",
 ]
 version = { workspace = true }
 edition = { workspace = true }

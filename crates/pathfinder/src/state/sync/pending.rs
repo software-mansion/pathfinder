@@ -829,7 +829,7 @@ mod tests {
     /// lower height than we're already tracking. The polling loop should skip
     /// those responses without overwriting the cached view.
     ///
-    /// See also <https://github.com/equilibriumco/pathfinder/issues/3081>.
+    /// See also <https://github.com/software-mansion/pathfinder/issues/3081>.
     #[tokio::test]
     async fn lower_height_is_skipped() {
         static COUNT: std::sync::Mutex<usize> = std::sync::Mutex::new(0);

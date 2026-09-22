@@ -40,7 +40,10 @@ version = "0.24.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.91"
-authors = ["Equilibrium Labs <info@equilibrium.co>"]
+authors = [
+    "Equilibrium Labs <info@equilibrium.co>",
+    "Software Mansion <contact@swmansion.com>",
+]
 
 [workspace.dependencies]
 anyhow = "1.0.102"

@@ -233,7 +233,7 @@ impl SerializeForVersion for pathfinder_common::transaction::ResourceBounds {
         serializer.serialize_field("l1_gas", &self.l1_gas)?;
         serializer.serialize_field("l2_gas", &self.l2_gas)?;
         // `l1_data_gas` is serialized as (0, 0) even if it's not set
-        // See https://github.com/equilibriumco/pathfinder/issues/2571
+        // See https://github.com/software-mansion/pathfinder/issues/2571
         serializer.serialize_field("l1_data_gas", &self.l1_data_gas.unwrap_or_default())?;
         serializer.end()
     }
@@ -246,7 +246,7 @@ impl DeserializeForVersion for pathfinder_common::transaction::ResourceBounds {
                 l1_gas: value.deserialize("l1_gas")?,
                 l2_gas: value.deserialize("l2_gas")?,
                 // `l1_data_gas` is *required*
-                // See https://github.com/equilibriumco/pathfinder/issues/2571
+                // See https://github.com/software-mansion/pathfinder/issues/2571
                 l1_data_gas: Some(value.deserialize("l1_data_gas")?),
             })
         })
