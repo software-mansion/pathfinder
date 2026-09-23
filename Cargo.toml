@@ -42,7 +42,7 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.91"
 authors = [
     "Equilibrium Labs <info@equilibrium.co>",
-    "Software Mansion <contact@swmansion.com>",
+    "Software Mansion <projects@swmansion.com>",
 ]
 
 [workspace.dependencies]
