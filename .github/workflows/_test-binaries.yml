@@ -50,5 +50,5 @@ jobs:
           tar -xzf "${archives[0]}" -C artifact/unpacked
       - name: Smoke test release binary
         env:
-          EXPECTED_VERSION: ${{ inputs.release_tag }}
-        run: scripts/smoke_test.sh --binary "$PWD/artifact/unpacked/pathfinder" "$EXPECTED_VERSION"
+          EXPECTED_PATHFINDER_VERSION: ${{ inputs.release_tag }}
+        run: scripts/smoke_test.sh --binary "$PWD/artifact/unpacked/pathfinder" "$EXPECTED_PATHFINDER_VERSION"

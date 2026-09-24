@@ -5,13 +5,13 @@
 set -euo pipefail
 
 if [ "$#" -ne 3 ] || { [ "$1" != "--binary" ] && [ "$1" != "--image" ]; }; then
-    echo "Usage: $0 <--binary|--image> <path-or-image> <expected-version>" >&2
+    echo "Usage: $0 <--binary|--image> <path-or-image> <expected-pathfinder-version>" >&2
     exit 2
 fi
 
 MODE=$1
 SUBJECT=$2
-EXPECTED_VERSION=$3
+EXPECTED_PATHFINDER_VERSION=$3
 DEFAULT_ETHEREUM_API_URL=wss://ethereum-sepolia-rpc.publicnode.com
 ETHEREUM_API_URL=${ETHEREUM_API_URL:-$DEFAULT_ETHEREUM_API_URL}
 TARGET_BLOCK=${TARGET_BLOCK:-100}
@@ -144,8 +144,11 @@ until version="$(pathfinder_rpc '{"jsonrpc":"2.0","method":"pathfinder_version",
     sleep 2
 done
 
-jq --exit-status --arg expected "$EXPECTED_VERSION" \
-    '.error == null and .result == $expected' <<<"$version" >/dev/null
+if ! jq --exit-status --arg expected "$EXPECTED_PATHFINDER_VERSION" \
+    '.error == null and .result == $expected' <<<"$version" >/dev/null; then
+    echo "Error: expected Pathfinder version '$EXPECTED_PATHFINDER_VERSION', got RPC response: $version" >&2
+    exit 1
+fi
 
 echo "Pathfinder is healthy and reports the expected version."
 
