@@ -1,0 +1,54 @@
+name: Test release binaries
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Release tag expected from pathfinder_version
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test-binary:
+    name: Test ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      # Finish every target to expose all platform-specific failures in one run.
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download release archive
+        uses: actions/download-artifact@v8
+        with:
+          name: release-${{ matrix.target }}
+          path: artifact
+      - name: Extract release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(artifact/*.tar.gz)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "::error::Expected one release archive, found ${#archives[@]}"
+            exit 1
+          fi
+          mkdir -p artifact/unpacked
+          tar -xzf "${archives[0]}" -C artifact/unpacked
+      - name: Smoke test release binary
+        env:
+          EXPECTED_PATHFINDER_VERSION: ${{ inputs.release_tag }}
+        run: scripts/smoke_test.sh --binary "$PWD/artifact/unpacked/pathfinder" "$EXPECTED_PATHFINDER_VERSION"
