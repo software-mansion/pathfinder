@@ -1,7 +1,7 @@
 version: "3"
 services:
   starknet-node:
-    image: eqlabs/pathfinder:latest
+    image: swmansion/pathfinder:latest
     restart: unless-stopped
     environment:
       - RUST_LOG=info

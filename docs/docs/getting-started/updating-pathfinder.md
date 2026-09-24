@@ -23,7 +23,7 @@ To update to the latest version:
 1. Pull the latest Docker image:
     
     ```bash
-    docker pull eqlabs/pathfinder
+    docker pull swmansion/pathfinder
     ```
     
 2. Stop and remove the current Pathfinder container:
@@ -45,7 +45,7 @@ To update to the latest version:
       -e RUST_LOG=info \
       -e PATHFINDER_ETHEREUM_API_URL="wss://sepolia.infura.io/ws/v3/<project-id>" \
       -v $HOME/pathfinder:/usr/share/pathfinder/data \
-      eqlabs/pathfinder
+      swmansion/pathfinder
     ``` 
 Your node should now run the latest version without losing any stored data.
 

@@ -37,7 +37,7 @@ docker run \
   -e RUST_LOG=info \
   -e PATHFINDER_ETHEREUM_API_URL="wss://sepolia.infura.io/ws/v3/<project-id>" \
   -v $HOME/pathfinder:/usr/share/pathfinder/data \
-  eqlabs/pathfinder
+  swmansion/pathfinder
 ```
 
 :::tip
