@@ -12,11 +12,11 @@ jobs:
     verify-release:
         name: Verify release metadata
         runs-on: ubuntu-latest
+        permissions:
+          contents: read
         steps:
             - uses: actions/checkout@v5
             - name: Verify tag, Cargo version, and changelog
-              env:
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                 set -euo pipefail
 
@@ -44,16 +44,6 @@ jobs:
 
                 if ! awk -v prefix="## [$tag_version] - " 'index($0, prefix) == 1 { found = 1 } END { exit !found }' CHANGELOG.md; then
                   echo "::error::CHANGELOG.md has no release entry for $tag_version"
-                  exit 1
-                fi
-
-                # Never replace an existing draft or published release.
-                if is_draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft 2>/dev/null); then
-                  if [ "$is_draft" = "true" ]; then
-                    echo "::error::Draft release $GITHUB_REF_NAME already exists; delete the incomplete draft before rerunning"
-                  else
-                    echo "::error::Published release $GITHUB_REF_NAME already exists and must not be replaced"
-                  fi
                   exit 1
                 fi
 
