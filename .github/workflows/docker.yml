@@ -98,7 +98,8 @@ jobs:
 
   smoke-test-image:
     needs: build-image
-    # Test a newly built snapshot and retest it before assigning final release tags.
+    # On release events, build-image is skipped and the snapshot built for the same
+    # tagged commit is tested again before assigning the final Docker tags.
     if: >-
       always() &&
       (github.event_name == 'release' || needs.build-image.result == 'success')
@@ -124,8 +125,6 @@ jobs:
       - name: Smoke test ${{ matrix.architecture }} snapshot
         env:
           EXPECTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.build-image.outputs.pathfinder_version }}
-          TARGET_BLOCK: 100
-          SYNC_TIMEOUT_SECONDS: 600
         run: scripts/smoke_test.sh --image swmansion/pathfinder:snapshot-${{ github.sha }} "$EXPECTED_VERSION"
 
   # Add the release labels to the associated docker image.
