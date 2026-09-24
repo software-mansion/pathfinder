@@ -120,6 +120,5 @@ jobs:
               env:
                 GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 GH_REPO: ${{ github.repository }}
-              # `--clobber` is needed to overwrite the existing assets in the draft
-              # release, which were uploaded by the `create-draft-release` job.
+              # Allow reruns to replace assets already uploaded to the draft release.
               run: gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber

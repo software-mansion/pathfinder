@@ -105,6 +105,8 @@ jobs:
       (github.event_name == 'release' || needs.build-image.result == 'success')
     timeout-minutes: 20
     strategy:
+      # Test both architectures even if one of them fails.
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-22.04
@@ -124,8 +126,8 @@ jobs:
         run: docker pull swmansion/pathfinder:snapshot-${{ github.sha }}
       - name: Smoke test ${{ matrix.architecture }} snapshot
         env:
-          EXPECTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.build-image.outputs.pathfinder_version }}
-        run: scripts/smoke_test.sh --image swmansion/pathfinder:snapshot-${{ github.sha }} "$EXPECTED_VERSION"
+          EXPECTED_PATHFINDER_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.build-image.outputs.pathfinder_version }}
+        run: scripts/smoke_test.sh --image swmansion/pathfinder:snapshot-${{ github.sha }} "$EXPECTED_PATHFINDER_VERSION"
 
   # Add the release labels to the associated docker image.
   tag-release:
