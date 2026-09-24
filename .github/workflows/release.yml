@@ -1,7 +1,7 @@
 name: Release
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -47,23 +47,8 @@ jobs:
                   exit 1
                 fi
 
-    create-draft-release:
+    build-binaries:
         needs: verify-release
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v5
-            - uses: taiki-e/create-gh-release-action@v1
-              with:
-                # (Optional) Path to changelog.
-                changelog: CHANGELOG.md
-                # (Optional) Create a draft release.
-                # [default value: false]
-                draft: true
-                # (Required) GitHub token for creating GitHub Releases.
-                token: ${{ secrets.GITHUB_TOKEN }}
-
-    upload-assets:
-        needs: create-draft-release
         strategy:
             matrix:
               include:
@@ -72,7 +57,7 @@ jobs:
                 - target: aarch64-unknown-linux-gnu
                   os: ubuntu-22.04-arm
                 - target: x86_64-apple-darwin
-                  os: macos-latest
+                  os: macos-15-intel
                 - target: aarch64-apple-darwin
                   os: macos-latest
         runs-on: ${{ matrix.os }}
@@ -81,9 +66,60 @@ jobs:
             - uses: arduino/setup-protoc@v3
               with:
                 repo-token: ${{ secrets.GITHUB_TOKEN }}
-            - uses: taiki-e/upload-rust-binary-action@v1
+            - name: Build release archive
+              id: build
+              uses: taiki-e/upload-rust-binary-action@v1
               with:
                 bin: pathfinder
                 target: ${{ matrix.target }}
                 profile: release-lto
+                # Build the archive without publishing it so smoke tests can run first.
+                dry-run: true
+                dry-run-intended: true
+            - name: Store release archive
+              uses: actions/upload-artifact@v7
+              with:
+                name: release-${{ matrix.target }}
+                path: ${{ steps.build.outputs.tar }}
+                if-no-files-found: error
+                # Artifacts are only needed for the next job, so we can delete them after 1 day.
+                retention-days: 1
+
+    test-binaries:
+        needs: build-binaries
+        uses: ./.github/workflows/_test-binaries.yml
+        with:
+          release_tag: ${{ github.ref_name }}
+
+    create-draft-release:
+        needs: test-binaries
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+            - uses: actions/checkout@v5
+            - uses: taiki-e/create-gh-release-action@v1
+              with:
+                changelog: CHANGELOG.md
+                draft: true
                 token: ${{ secrets.GITHUB_TOKEN }}
+
+    upload-assets:
+        needs: create-draft-release
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+            - name: Download tested archives
+              uses: actions/download-artifact@v8
+              with:
+                pattern: release-*
+                path: artifacts
+                merge-multiple: true
+            - name: Upload archives to draft release
+              env:
+                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                GH_REPO: ${{ github.repository }}
+              # `--clobber` is needed to overwrite the existing assets in the draft
+              # release, which were uploaded by the `create-draft-release` job.
+              run: gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber

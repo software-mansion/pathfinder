@@ -25,6 +25,8 @@ jobs:
   build-image:
     if: github.event_name != 'release'
     runs-on: pathfinder-large-ubuntu
+    outputs:
+      pathfinder_version: ${{ steps.generate_version.outputs.pathfinder_version }}
     steps:
       - name: Determine Docker image metadata
         id: meta
@@ -94,8 +96,41 @@ jobs:
       - name: Mirror snapshot to eqlabs/pathfinder
         run: docker buildx imagetools create -t eqlabs/pathfinder:snapshot-${{ github.sha }} swmansion/pathfinder:snapshot-${{ github.sha }}
 
+  smoke-test-image:
+    needs: build-image
+    # Test a newly built snapshot and retest it before assigning final release tags.
+    if: >-
+      always() &&
+      (github.event_name == 'release' || needs.build-image.result == 'success')
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            architecture: amd64
+          - os: ubuntu-22.04-arm
+            architecture: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Pull ${{ matrix.architecture }} snapshot
+        run: docker pull swmansion/pathfinder:snapshot-${{ github.sha }}
+      - name: Smoke test ${{ matrix.architecture }} snapshot
+        env:
+          EXPECTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.build-image.outputs.pathfinder_version }}
+          TARGET_BLOCK: 100
+          SYNC_TIMEOUT_SECONDS: 600
+        run: scripts/smoke_test.sh --image swmansion/pathfinder:snapshot-${{ github.sha }} "$EXPECTED_VERSION"
+
   # Add the release labels to the associated docker image.
   tag-release:
+    needs: smoke-test-image
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
