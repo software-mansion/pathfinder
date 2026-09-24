@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
+      # Finish every target to expose all platform-specific failures in one run.
       fail-fast: false
       matrix:
         include:
@@ -39,6 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          shopt -s nullglob
           archives=(artifact/*.tar.gz)
           if [ "${#archives[@]}" -ne 1 ]; then
             echo "::error::Expected one release archive, found ${#archives[@]}"
