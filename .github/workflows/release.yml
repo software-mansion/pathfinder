@@ -9,7 +9,46 @@ on:
       - v[0-9]+.*
 
 jobs:
+    verify-release:
+        name: Verify release metadata
+        runs-on: ubuntu-latest
+        permissions:
+          contents: read
+        steps:
+            - uses: actions/checkout@v5
+            - name: Verify tag, Cargo version, and changelog
+              run: |
+                set -euo pipefail
+
+                # The tag, workspace version, and changelog must describe the same release.
+                tag_version="${GITHUB_REF_NAME#v}"
+                cargo_version="$(awk '
+                  $0 == "[workspace.package]" { in_workspace_package = 1; next }
+                  /^\[/ { in_workspace_package = 0 }
+                  in_workspace_package && $1 == "version" {
+                    gsub(/"/, "", $3)
+                    print $3
+                    exit
+                  }
+                ' Cargo.toml)"
+
+                if [ -z "$cargo_version" ]; then
+                  echo "::error::Could not read workspace version from Cargo.toml"
+                  exit 1
+                fi
+
+                if [ "$tag_version" != "$cargo_version" ]; then
+                  echo "::error::Tag version ($tag_version) does not match Cargo.toml version ($cargo_version)"
+                  exit 1
+                fi
+
+                if ! awk -v prefix="## [$tag_version] - " 'index($0, prefix) == 1 { found = 1 } END { exit !found }' CHANGELOG.md; then
+                  echo "::error::CHANGELOG.md has no release entry for $tag_version"
+                  exit 1
+                fi
+
     create-draft-release:
+        needs: verify-release
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
