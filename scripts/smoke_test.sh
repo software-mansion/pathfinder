@@ -78,6 +78,7 @@ if [ "$MODE" = "--image" ]; then
         --env "PATHFINDER_ETHEREUM_API_URL=${ETHEREUM_API_URL}" \
         --env PATHFINDER_NETWORK=sepolia-testnet \
         --env PATHFINDER_MONITOR_ADDRESS='[::]:9546' \
+        --env PATHFINDER_RPC_COMPILER_CONCURRENCY_LIMIT=1 \
         "$SUBJECT" >/dev/null
 else
     if [ ! -x "$SUBJECT" ]; then
@@ -92,6 +93,7 @@ else
     PATHFINDER_NETWORK=sepolia-testnet \
     PATHFINDER_HTTP_RPC_ADDRESS="127.0.0.1:${RPC_PORT}" \
     PATHFINDER_MONITOR_ADDRESS="127.0.0.1:${MONITOR_PORT}" \
+    PATHFINDER_RPC_COMPILER_CONCURRENCY_LIMIT=1 \
         "$SUBJECT" >"$WORK_DIR/pathfinder.log" 2>&1 &
     PATHFINDER_PID=$!
 fi
@@ -124,10 +126,17 @@ rpc() {
         "http://127.0.0.1:${RPC_PORT}/rpc/v0_10"
 }
 
+pathfinder_rpc() {
+    curl --fail --silent --show-error \
+        --header 'Content-Type: application/json' \
+        --data "$1" \
+        "http://127.0.0.1:${RPC_PORT}/rpc/pathfinder/v0.1"
+}
+
 # Monitoring starts before RPC, so wait for the RPC endpoint separately.
 deadline=$((SECONDS + STARTUP_TIMEOUT_SECONDS))
 version=''
-until version="$(rpc '{"jsonrpc":"2.0","method":"pathfinder_version","params":[],"id":1}')"; do
+until version="$(pathfinder_rpc '{"jsonrpc":"2.0","method":"pathfinder_version","params":[],"id":1}')"; do
     if ((SECONDS >= deadline)); then
         echo "Error: Pathfinder RPC did not become available within ${STARTUP_TIMEOUT_SECONDS}s" >&2
         exit 1
