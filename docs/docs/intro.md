@@ -74,7 +74,7 @@ import Card from '@site/src/components/Card';
 <p/>
 ```
 
-If you are looking to use the Pathfinder full node as part of a validator setup, install the [attestation tool](https://github.com/equilibriumco/starknet-validator-attestation) with the node.
+If you are looking to use the Pathfinder full node as part of a validator setup, install the [attestation tool](https://github.com/software-mansion/starknet-validator-attestation) with the node.
 
 ## Community and Support
 
@@ -82,9 +82,9 @@ We highly value community engagement, especially during this alpha phase. Whethe
 
 You can contribute to Pathfinder by:
 
-* **Opening an Issue**: If you encounter bugs or have feature requests, please open an issue on our [GitHub repository](https://github.com/equilibriumco/pathfinder/issues/new).
+* **Opening an Issue**: If you encounter bugs or have feature requests, please open an issue on our [GitHub repository](https://github.com/software-mansion/pathfinder/issues/new).
 * **Joining our Community**: Connect with other users and developers by joining the Starknet [Discord channel](https://discord.com/invite/starknet-community).
-* **Contributing to the Codebase**: If you’re interested in contributing to Pathfinder, check out our [contributing guidelines](https://github.com/equilibriumco/pathfinder/blob/main/contributing.md) and [open issues](https://github.com/equilibriumco/pathfinder/issues) on GitHub.
+* **Contributing to the Codebase**: If you’re interested in contributing to Pathfinder, check out our [contributing guidelines](https://github.com/software-mansion/pathfinder/blob/main/contributing.md) and [open issues](https://github.com/software-mansion/pathfinder/issues) on GitHub.
 
 
 

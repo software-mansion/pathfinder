@@ -8,7 +8,7 @@ Database snapshots let you quickly start your node without having to download al
 
 ## Available Snapshots
 
-Please check our [snapshot download page](https://rpc.pathfinder.equilibrium.co/snapshots/latest) for the list of latest snapshots.
+Please check our [snapshot download page](https://rpc.pathfinder.swmansion.com/snapshots/latest) for the list of latest snapshots.
 
 There are two main ways to download and use a snapshot with Pathfinder:
 
@@ -51,7 +51,7 @@ Add `-P` to get a progress display that helps you track the download status.
 While HTTPS URLs are also provided, direct HTTPS downloads can sometimes be less reliable for very large files. If you must use HTTPS, verify you can resume downloads or maintain a stable connection. For example:
 
 ```bash
-wget --continue https://rpc.pathfinder.equilibrium.co/snapshots/latest/mainnet.sqlite.zst
+wget --continue https://rpc.pathfinder.swmansion.com/snapshots/latest/mainnet.sqlite.zst
 ```
 
 ## Extracting Snapshots and Checksums

@@ -13,14 +13,14 @@ const config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://equilibriumco.github.io/',
+  url: 'https://docs.swmansion.com',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/pathfinder/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'equilibriumco', // Usually your GitHub org/user name.
+  organizationName: 'software-mansion', // Usually your GitHub org/user name.
   projectName: 'pathfinder', // Usually your repo name.
 
   onBrokenLinks: 'throw',
@@ -68,7 +68,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://github.com/equilibriumco/pathfinder',
+            href: 'https://github.com/software-mansion/pathfinder',
             label: 'GitHub',
             position: 'right',
           },
@@ -99,12 +99,12 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/equilibriumco/pathfinder',
+                href: 'https://github.com/software-mansion/pathfinder',
               },
             ],
           },
         ],
-        copyright: `Equilibrium Labs © ${new Date().getFullYear()}`,
+        copyright: `Software Mansion © ${new Date().getFullYear()}`,
       },
       prism: {
         theme: prismThemes.github,

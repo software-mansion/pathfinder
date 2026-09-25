@@ -131,7 +131,7 @@ If needed, you can get the latest `protoc` from the [releases page](https://gith
 Clone the Pathfinder repository and check out the latest release:
 
 ```bash
-git clone https://github.com/equilibriumco/pathfinder.git
+git clone https://github.com/software-mansion/pathfinder.git
 cd pathfinder
 git checkout <latest-version-tag>
 ```
