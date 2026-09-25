@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Docker images are now published to `swmansion/pathfinder` and temporarily mirrored to `eqlabs/pathfinder`. Please update your configuration to use the new repository. The `eqlabs/pathfinder` images will continue to be published until the migration window closes.
+- The `blockifier` and `starknet_api` crates have been upgraded to 0.20.0-rc.1.
 
 ## [0.24.0] - 2026-09-01
 
