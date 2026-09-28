@@ -24,7 +24,7 @@ jobs:
   # Build a docker image unless this was triggered by a release.
   build-image:
     if: github.event_name != 'release'
-    runs-on: pathfinder-large-ubuntu
+    runs-on: ubuntu-latest
     outputs:
       pathfinder_version: ${{ steps.generate_version.outputs.pathfinder_version }}
     steps:

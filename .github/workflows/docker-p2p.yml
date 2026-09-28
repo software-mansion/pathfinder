@@ -17,7 +17,7 @@ env:
 jobs:
   # Build a docker image unless this was triggered by a release.
   build-image-p2p:
-    runs-on: pathfinder-large-ubuntu
+    runs-on: ubuntu-latest
     steps:
       - name: Determine Docker image metadata
         id: meta
