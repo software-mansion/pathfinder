@@ -25,7 +25,17 @@ File names follow the pattern `<network>_<minimum version>_<block>_<version>.sql
 * `block`: the block height the database is synced to.
 * `version`: the Pathfinder release that produced the snapshot.
 
-A `LATEST.txt` file in the bucket lists the newest snapshot per network together with its checksum. Per network we keep the newest snapshot, one previous patch release and two previous minor releases, so a compatible snapshot stays available for a while after a Pathfinder upgrade.
+A `LATEST.txt` file in the bucket lists the newest snapshot per network together with its checksum.
+
+### Retention
+
+Older snapshots are removed automatically after each weekly run. Per network we keep:
+
+* the newest snapshot,
+* one snapshot from a previous patch release of the same minor version,
+* one snapshot for each of the two previous minor versions.
+
+This way a compatible snapshot stays available for a while after a Pathfinder upgrade. Snapshots outside this policy may still be in the bucket until the next cleanup, so don't rely on them staying available.
 
 ## Downloading via HTTPS
 
