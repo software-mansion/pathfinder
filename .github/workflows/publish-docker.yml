@@ -1,0 +1,53 @@
+# Promotes the tested snapshot built while preparing the release to its final Docker tags.
+
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Tag image with release name
+        run: docker buildx imagetools create -t swmansion/pathfinder:${{ github.event.release.tag_name }} swmansion/pathfinder:snapshot-${{ github.sha }}
+        # Only tag the image as 'latest' if its a release i.e. not a prerelease.
+      - name: Tag image with 'latest'
+        if: ${{ !github.event.release.prerelease }}
+        run: docker buildx imagetools create -t swmansion/pathfinder:latest swmansion/pathfinder:snapshot-${{ github.sha }}
+
+      # TODO(#3563): Remove block below and the EQLABS_* secrets once the migration window closes.
+      - name: Login to Docker Hub (legacy eqlabs namespace)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.EQLABS_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.EQLABS_DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Mirror release tag to eqlabs/pathfinder
+        run: docker buildx imagetools create -t eqlabs/pathfinder:${{ github.event.release.tag_name }} swmansion/pathfinder:${{ github.event.release.tag_name }}
+      - name: Mirror 'latest' to eqlabs/pathfinder
+        if: ${{ !github.event.release.prerelease }}
+        run: docker buildx imagetools create -t eqlabs/pathfinder:latest swmansion/pathfinder:${{ github.event.release.tag_name }}
+
+  # Dispatch the version bump workflow on pathfinder-infra
+  update-infra:
+    if: ${{ !github.event.release.prerelease }}
+    needs: publish-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch pathfinder-infra version bump
+        env:
+          GH_TOKEN: ${{ secrets.PATHFINDER_INFRA_DISPATCH_TOKEN }}
+        run: |
+          gh workflow run update-pathfinder-version.yml \
+            --repo software-mansion/pathfinder-infra \
+            --ref main \
+            --field version=${{ github.event.release.tag_name }}

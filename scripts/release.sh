@@ -132,7 +132,7 @@ git pull origin main
 
 # Confirmation before creating tag
 echo -e "\nReady to create and push tag 'v${VERSION}'"
-echo "This will trigger the Release and Docker workflows."
+echo "This will trigger the Prepare release workflow."
 echo -e "\nCreate and push tag 'v${VERSION}'? (Y/n)"
 read -r answer
 if [[ "$answer" == "n" ]] || [[ "$answer" == "N" ]]; then
@@ -147,5 +147,5 @@ git push origin v${VERSION}
 
 # Done
 echo -e "\n✅ Tag 'v${VERSION}' has been pushed!"
-echo "The Release and Docker workflows should now be triggered."
-echo "You can monitor their progress in the GitHub Actions tab."
+echo "The Prepare release workflow should now be triggered."
+echo "You can monitor its progress in the GitHub Actions tab."

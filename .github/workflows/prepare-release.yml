@@ -1,4 +1,4 @@
-name: Release
+name: Prepare release
 
 permissions:
   contents: read
@@ -84,8 +84,17 @@ jobs:
         with:
           release_tag: ${{ github.ref_name }}
 
+    build-and-test-docker:
+        needs: verify-release
+        uses: ./.github/workflows/_build-and-test-docker.yml
+        with:
+          pathfinder_force_version: ${{ github.ref_name }}
+        secrets:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
     create-draft-release:
-        needs: test-binaries
+        needs: [test-binaries, build-and-test-docker]
         runs-on: ubuntu-latest
         permissions:
           contents: write

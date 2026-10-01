@@ -1,0 +1,122 @@
+name: Build and test Docker image
+
+on:
+  workflow_call:
+    inputs:
+      pathfinder_force_version:
+        description: 'Set version for pathfinder via PATHFINDER_FORCE_VERSION (defaults to `git describe --tags --dirty`)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_ACCESS_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      pathfinder_force_version:
+        description: 'Set version for pathfinder via PATHFINDER_FORCE_VERSION (defaults to `git describe --tags --dirty`)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  # Workaround for https://github.com/rust-lang/cargo/issues/8719#issuecomment-1516492970
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      pathfinder_version: ${{ steps.generate_version.outputs.pathfinder_version }}
+    steps:
+      - name: Determine Docker image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: swmansion/pathfinder
+      - name: Checkout sources
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Generate version
+        id: generate_version
+        env:
+          PATHFINDER_FORCE_VERSION: ${{ inputs.pathfinder_force_version }}
+        run: |
+          if [ -n "$PATHFINDER_FORCE_VERSION" ]; then
+            echo "pathfinder_version=$PATHFINDER_FORCE_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo -n "pathfinder_version=" >> "$GITHUB_OUTPUT"
+            git describe --tags --dirty >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v4
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      # Required for git security reasons. See https://github.com/rustyhorde/vergen/pull/126#issuecomment-1201088162
+      - name: Vergen git safe directory
+        run: git config --global --add safe.directory /workspace
+      - name: Build
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: |
+            linux/amd64
+            linux/arm64
+          file: ./Dockerfile
+          build-args: |
+            PATHFINDER_FORCE_VERSION=${{ steps.generate_version.outputs.pathfinder_version }}
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: swmansion/pathfinder:snapshot-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke-test-image:
+    needs: build-image
+    timeout-minutes: 20
+    strategy:
+      # Test both architectures even if one of them fails.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            architecture: amd64
+          - os: ubuntu-22.04-arm
+            architecture: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Pull ${{ matrix.architecture }} snapshot
+        run: docker pull swmansion/pathfinder:snapshot-${{ github.sha }}
+      - name: Smoke test ${{ matrix.architecture }} snapshot
+        env:
+          EXPECTED_PATHFINDER_VERSION: ${{ needs.build-image.outputs.pathfinder_version }}
+        run: scripts/smoke_test.sh --image swmansion/pathfinder:snapshot-${{ github.sha }} "$EXPECTED_PATHFINDER_VERSION"
