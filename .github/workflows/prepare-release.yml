@@ -92,9 +92,6 @@ jobs:
         secrets:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          # TODO(#3563): Remove EQLABS_* secrets once the migration window closes.
-          EQLABS_DOCKER_HUB_USERNAME: ${{ secrets.EQLABS_DOCKER_HUB_USERNAME }}
-          EQLABS_DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.EQLABS_DOCKER_HUB_ACCESS_TOKEN }}
 
     create-draft-release:
         needs: [test-binaries, build-and-test-docker]
