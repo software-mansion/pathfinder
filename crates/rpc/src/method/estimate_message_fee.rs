@@ -17,7 +17,7 @@ use crate::RpcVersion;
 // TODO(#3591): The lowest overall fee, in wei, that `starknet_estimateMessageFee` can return.
 // In future, this constant should be removed and value should be queried from
 // L1 core contract.
-const MIN_L1_TO_L2_MESSAGE_FEE_WEI: u64 = 50_000_000_000_000;
+const MIN_L1_TO_L2_MESSAGE_FEE_WEI: u64 = 5 * 10u64.pow(13);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct EstimateMessageFeeInput {
