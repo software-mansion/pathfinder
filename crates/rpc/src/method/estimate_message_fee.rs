@@ -14,9 +14,9 @@ use crate::pending::UnvalidatedOrId;
 use crate::types::BlockId;
 use crate::RpcVersion;
 
-// TODO(#3591): The lowest overall fee, in wei, that `starknet_estimateMessageFee` can return.
-// In future, this constant should be removed and value should be queried from
-// L1 core contract.
+// TODO(#3591): The lowest overall fee, in wei, that
+// `starknet_estimateMessageFee` can return. In future, this constant should be
+// removed and value should be queried from L1 core contract.
 const MIN_L1_TO_L2_MESSAGE_FEE_WEI: u64 = 5 * 10u64.pow(13);
 
 #[derive(Debug, PartialEq, Eq)]
@@ -282,7 +282,8 @@ impl From<EstimateMessageFeeError> for ApplicationError {
 mod tests {
     use assert_matches::assert_matches;
     use pathfinder_common::class_definition::{
-        SerializedCasmDefinition, SerializedSierraDefinition,
+        SerializedCasmDefinition,
+        SerializedSierraDefinition,
     };
     use pathfinder_common::macro_prelude::*;
     use pathfinder_common::prelude::*;
