@@ -7,6 +7,12 @@ More expansive patch notes and explanations may be found in the specific [pathfi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `starknet_estimateMessageFee` now returns an `overall_fee` of at least 5*10^13 wei, the minimum fee for L1 -> L2 messages. When the minimum applies, `overall_fee` no longer equals the sum of the gas amounts multiplied by their prices.
+
 ## [0.24.1] - 2026-09-28
 
 ### Changed
