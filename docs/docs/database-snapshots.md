@@ -12,37 +12,18 @@ Please check our [snapshot download page](https://rpc.pathfinder.swmansion.com/s
 
 ## How Snapshots Are Made
 
-Snapshots are created once a week from the databases of our public Pathfinder nodes. For each network we take an online copy of the live database with SQLite's `VACUUM INTO`, compress it with `zstd` and compute its SHA2-256 checksum. The files are then uploaded to the public Google Cloud Storage bucket `pathfinder-snapshots`, where they are served from:
-
-```
-https://storage.googleapis.com/pathfinder-snapshots/<file name>
-```
-
-File names follow the pattern `<network>_<minimum version>_<block>_<version>.sqlite.zst`, for example `mainnet_0.24.0_15191343_0.24.0.sqlite.zst`:
-
-* `network`: `mainnet`, `testnet-sepolia` or `integration-sepolia`.
-* `minimum version`: the oldest Pathfinder release that can open this database.
-* `block`: the block height the database is synced to.
-* `version`: the Pathfinder release that produced the snapshot.
-
-A `LATEST.txt` file in the bucket lists the newest snapshot per network together with its checksum.
+Snapshots are created once a week from the databases of our public Pathfinder nodes. For each network we take an online copy of the live database with SQLite's `VACUUM INTO`, compress it with `zstd` and compute its SHA2-256 checksum. The snapshot download page lists each snapshot's block height, sizes and checksum.
 
 ### Retention
 
-Older snapshots are removed automatically after each weekly run. Per network we keep:
-
-* the newest snapshot,
-* one snapshot from a previous patch release of the same minor version,
-* one snapshot for each of the two previous minor versions.
-
-This way a compatible snapshot stays available for a while after a Pathfinder upgrade. Snapshots outside this policy may still be in the bucket until the next cleanup, so don't rely on them staying available.
+Older snapshots are removed automatically after each weekly run. For each network we keep the two newest snapshots of each of the three newest Pathfinder minor versions, including all their patch releases. This way a compatible snapshot stays available for a while after a Pathfinder upgrade.
 
 ## Downloading via HTTPS
 
 Snapshots are large files, so use a client that can resume an interrupted download. For example:
 
 ```bash
-wget --continue https://rpc.pathfinder.swmansion.com/snapshots/latest/mainnet.sqlite.zst
+wget --continue -O mainnet.sqlite.zst https://rpc.pathfinder.swmansion.com/snapshots/latest/mainnet
 ```
 
 Replace `mainnet` with `testnet-sepolia` or `integration-sepolia` for the other networks. The link redirects to the latest snapshot for that network.
