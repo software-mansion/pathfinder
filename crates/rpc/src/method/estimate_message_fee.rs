@@ -14,6 +14,11 @@ use crate::pending::UnvalidatedOrId;
 use crate::types::BlockId;
 use crate::RpcVersion;
 
+// TODO(#3591): The lowest overall fee, in wei, that
+// `starknet_estimateMessageFee` can return. In future, this constant should be
+// removed and value should be queried from L1 core contract.
+const MIN_L1_TO_L2_MESSAGE_FEE_WEI: u64 = 5 * 10u64.pow(13);
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct EstimateMessageFeeInput {
     pub message: MsgFromL1,
@@ -142,8 +147,14 @@ pub async fn estimate_message_fee(
         );
     }
 
-    let result = result.pop().unwrap();
+    let mut result = result.pop().unwrap();
+    result.overall_fee = min_message_fee(result.overall_fee);
+
     Ok(Output(result))
+}
+
+fn min_message_fee(overall_fee: primitive_types::U256) -> primitive_types::U256 {
+    overall_fee.max(MIN_L1_TO_L2_MESSAGE_FEE_WEI.into())
 }
 
 fn create_executor_transaction(
@@ -276,7 +287,7 @@ mod tests {
     };
     use pathfinder_common::macro_prelude::*;
     use pathfinder_common::prelude::*;
-    use pathfinder_common::L1DataAvailabilityMode;
+    use pathfinder_common::{BlockHeaderBuilder, L1DataAvailabilityMode};
     use pathfinder_storage::StorageBuilder;
     use primitive_types::H160;
 
@@ -293,6 +304,15 @@ mod tests {
     }
 
     async fn setup(mode: Setup) -> anyhow::Result<RpcContext> {
+        setup_with_block_header(mode, |header| header).await
+    }
+
+    /// Like [`setup`], but `customize` can override fields of the header of
+    /// block 1, which the tests estimate against.
+    async fn setup_with_block_header(
+        mode: Setup,
+        customize: impl FnOnce(BlockHeaderBuilder) -> BlockHeaderBuilder,
+    ) -> anyhow::Result<RpcContext> {
         let dir = tempfile::tempdir().expect("tempdir");
         let mut db_path = dir.path().to_path_buf();
         db_path.push("db.sqlite");
@@ -339,8 +359,8 @@ mod tests {
                     .eth_l1_gas_price(GasPrice(2))
                     .eth_l1_data_gas_price(GasPrice(1))
                     .starknet_version(StarknetVersion::new(0, 13, 1, 0))
-                    .l1_da_mode(L1DataAvailabilityMode::Blob)
-                    .finalize_with_hash(block1_hash);
+                    .l1_da_mode(L1DataAvailabilityMode::Blob);
+                let header = customize(header).finalize_with_hash(block1_hash);
                 tx.insert_block_header(&header).unwrap();
             }
 
@@ -390,6 +410,28 @@ mod tests {
 
         let output_json = result.serialize(Serializer { version }).unwrap();
         crate::assert_json_matches_fixture!(output_json, version, "fee_estimates/full.json");
+    }
+
+    #[rstest::rstest]
+    #[case::v09(RpcVersion::V09)]
+    #[case::v10(RpcVersion::V10)]
+    #[tokio::test]
+    async fn overall_fee_above_minimum_is_unchanged(#[case] version: RpcVersion) {
+        // High value (10 gwei), so that the computed fee exceeds the minimum.
+        let rpc = setup_with_block_header(Setup::Full, |header| {
+            header.eth_l1_gas_price(GasPrice(10_000_000_000))
+        })
+        .await
+        .expect("RPC context");
+        let Output(fee) = super::estimate_message_fee(rpc, input(), version)
+            .await
+            .expect("result");
+
+        let computed = fee.l1_gas_consumed * fee.l1_gas_price
+            + fee.l1_data_gas_consumed * fee.l1_data_gas_price
+            + fee.l2_gas_consumed * fee.l2_gas_price;
+        assert!(computed > MIN_L1_TO_L2_MESSAGE_FEE_WEI.into());
+        assert_eq!(fee.overall_fee, computed);
     }
 
     #[test_log::test(tokio::test)]
@@ -467,5 +509,18 @@ mod tests {
              contract address 0x057dde83c18c0efe7123c36a52d704cf27d5c38cdf0b1e1edc3b0dae3ee4e370 \
              is not deployed.\n";
         assert_matches!(err, EstimateMessageFeeError::ContractError { revert_error, revert_error_stack: _ } if revert_error == expected_revert_error);
+    }
+
+    #[rstest::rstest]
+    #[case::zero(0.into(), MIN_L1_TO_L2_MESSAGE_FEE_WEI.into())]
+    #[case::below_minimum((MIN_L1_TO_L2_MESSAGE_FEE_WEI - 1).into(), MIN_L1_TO_L2_MESSAGE_FEE_WEI.into())]
+    #[case::at_minimum(MIN_L1_TO_L2_MESSAGE_FEE_WEI.into(), MIN_L1_TO_L2_MESSAGE_FEE_WEI.into())]
+    #[case::above_minimum((MIN_L1_TO_L2_MESSAGE_FEE_WEI + 1).into(), (MIN_L1_TO_L2_MESSAGE_FEE_WEI + 1).into())]
+    #[case::max(primitive_types::U256::MAX, primitive_types::U256::MAX)]
+    fn min_message_fee_is_applied(
+        #[case] overall_fee: primitive_types::U256,
+        #[case] expected: primitive_types::U256,
+    ) {
+        assert_eq!(min_message_fee(overall_fee), expected);
     }
 }
