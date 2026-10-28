@@ -337,7 +337,7 @@ mod tests {
     use pathfinder_merkle_tree::starknet_state::update_starknet_state;
     use pathfinder_storage::fake::{generate, Block, Config};
     use pathfinder_storage::{Storage, StorageBuilder};
-    use rand::Rng;
+    use rand::{Rng, RngExt};
     use rayon::iter::Rev;
     use rstest::rstest;
     use sha3::digest::consts::U6;

@@ -29,7 +29,7 @@ async fn consensus_simulation() {
     let temp_dir = temp_dir.path().to_path_buf();
 
     for i in 1..=NUM_VALIDATORS {
-        let sk = SigningKey::new(rand::rngs::OsRng);
+        let sk = SigningKey::new(rand_08::rngs::OsRng);
         let pk = sk.verification_key();
         let addr = NodeAddress(format!("0x{i}"));
         let pubkey = PublicKey::from_bytes(pk.to_bytes());

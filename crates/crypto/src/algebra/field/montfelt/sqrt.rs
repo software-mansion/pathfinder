@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_sqrt_random() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for _ in 0..100 {
             let x = MontFelt::random(&mut rng);
             let sqrt = x.sqrt();

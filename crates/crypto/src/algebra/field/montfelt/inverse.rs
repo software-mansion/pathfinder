@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_inverse_random() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for _ in 0..100 {
             let x = MontFelt::random(&mut rng);
             let inv = x.inverse().unwrap();

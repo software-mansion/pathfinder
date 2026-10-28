@@ -33,7 +33,7 @@ impl<T> PeerData<T> {
 
 impl<T, U: Dummy<T>> Dummy<T> for PeerData<U> {
     fn dummy_with_rng<R: rand::prelude::Rng + ?Sized>(config: &T, rng: &mut R) -> Self {
-        let digest = rng.gen::<[u8; 32]>();
+        let digest = rand::RngExt::random::<[u8; 32]>(rng);
         let multihash = libp2p::multihash::Multihash::wrap(0x0, &digest)
             .expect("The digest size is never too large");
 

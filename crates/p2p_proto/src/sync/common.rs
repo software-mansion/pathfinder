@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::num::NonZeroU64;
 
 use fake::Dummy;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::common::{BlockNumberOrHash, Hash};
 use crate::{proto, ToProtobuf, TryFromProtobuf};
@@ -60,7 +60,7 @@ impl Display for Step {
 
 impl<T> Dummy<T> for Step {
     fn dummy_with_rng<R: Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-        Self(rng.gen())
+        Self(rng.random())
     }
 }
 

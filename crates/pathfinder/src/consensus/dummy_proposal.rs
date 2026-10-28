@@ -24,8 +24,8 @@ use pathfinder_crypto::Felt;
 use pathfinder_executor::{ConcurrentStateReader, ExecutorWorkerPool};
 use pathfinder_storage::Storage;
 use pathfinder_validator::{ProdTransactionMapper, ValidatorBlockInfoStage};
-use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng, SeedableRng};
+use rand::seq::IndexedRandom;
+use rand::{rng, RngExt, SeedableRng};
 
 use crate::devnet::{self, strictly_increasing_timestamp, Account};
 
@@ -173,15 +173,15 @@ pub(crate) fn create_from_bootstrapped_devnet_db(
 
     // We generate up to 10 batches of up to 30 transactions and then randomly
     // pick how many of those transactions we execute.
-    let seed = thread_rng().gen::<u64>();
-    let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+    let seed = rng().random::<u64>();
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
     let mut batches = Vec::new();
     let mut next_txn_idx_start = 0;
 
     // HelloStarknet must be declared first, so empty proposals are only allowed
     // from height 2 onwards.
-    let empty_proposal = height >= 2 && rng.gen_bool(EMPTY_PROPOSAL_PROBABILITY);
+    let empty_proposal = height >= 2 && rng.random_bool(EMPTY_PROPOSAL_PROBABILITY);
 
     tracing::debug!(%height, %round, %seed, %empty_proposal, "Creating dummy proposal");
 
@@ -203,15 +203,15 @@ pub(crate) fn create_from_bootstrapped_devnet_db(
             next_txn_idx_start += first_batch.len();
             batches.push(first_batch);
         } else {
-            let num_batches = rng.gen_range(1..=MAX_NUM_BATCHES);
+            let num_batches = rng.random_range(1..=MAX_NUM_BATCHES);
 
             for _ in 0..num_batches {
-                let batch_tries = rng.gen_range(1..=MAX_BATCH_TRIES);
+                let batch_tries = rng.random_range(1..=MAX_BATCH_TRIES);
                 let mut batch = Vec::new();
 
                 for _ in 0..batch_tries {
                     // Maybe deploy another instance
-                    if rng.gen() {
+                    if rng.random() {
                         batch.push(account.hello_starknet_deploy()?);
                     }
 
@@ -220,7 +220,7 @@ pub(crate) fn create_from_bootstrapped_devnet_db(
                     if let Some(contract_address) = deployed_in_db.choose(&mut rng) {
                         batch.push(account.hello_starknet_increase_balance(
                             *contract_address,
-                            rng.gen_range(1..=1000),
+                            rng.random_range(1..=1000),
                         ));
                         // This is a view function, but it still gives us a
                         // realistic transaction
@@ -240,7 +240,7 @@ pub(crate) fn create_from_bootstrapped_devnet_db(
     let num_executed_txns = if empty_proposal {
         0
     } else {
-        rng.gen_range(1..=next_txn_idx_start)
+        rng.random_range(1..=next_txn_idx_start)
     };
     let txns_to_execute = batches
         .iter()
@@ -309,10 +309,10 @@ pub(crate) fn create_with_invalid_l1_handler_transactions(
     // This is fine because `wait_for_parent_committed` is called first
     let latest_timestamp = db_txn.block_header(BlockId::Latest)?.map(|h| h.timestamp);
 
-    let seed = thread_rng().gen::<u64>();
-    let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+    let seed = rng().random::<u64>();
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
-    let empty_proposal = config.is_none() && rng.gen_bool(EMPTY_PROPOSAL_PROBABILITY);
+    let empty_proposal = config.is_none() && rng.random_bool(EMPTY_PROPOSAL_PROBABILITY);
 
     tracing::debug!(%height, %round, %seed, %empty_proposal, ?config, "Creating dummy proposal with invalid L1 handler transactions");
 
@@ -323,13 +323,13 @@ pub(crate) fn create_with_invalid_l1_handler_transactions(
         let num_batches = config
             .as_ref()
             .map(|c| c.num_batches.get())
-            .unwrap_or_else(|| rng.gen_range(1..=10));
+            .unwrap_or_else(|| rng.random_range(1..=10));
 
         for _ in 1..=num_batches {
             let batch_len = config
                 .as_ref()
                 .map(|c| c.batch_len.get())
-                .unwrap_or_else(|| rng.gen_range(1..=10));
+                .unwrap_or_else(|| rng.random_range(1..=10));
 
             let batch = create_transaction_batch(
                 height as u32,
@@ -373,7 +373,7 @@ pub(crate) fn create_with_invalid_l1_handler_transactions(
         config
             .as_ref()
             .map(|c| c.num_executed_txns.get())
-            .unwrap_or_else(|| rng.gen_range(1..=next_txn_idx_start))
+            .unwrap_or_else(|| rng.random_range(1..=next_txn_idx_start))
     };
 
     let txns_to_execute = batches

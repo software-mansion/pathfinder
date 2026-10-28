@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::MontFelt;
 
@@ -6,10 +6,10 @@ impl MontFelt {
     /// Try to sample a random field element
     pub fn sample<R: Rng>(rng: &mut R) -> Option<Self> {
         let mut s = MontFelt([
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
         ]);
         s.0[3] &= 0xffffffffffffffffu64 >> MontFelt::ZERO_BITS;
         if s.const_lt(&MontFelt::P) {

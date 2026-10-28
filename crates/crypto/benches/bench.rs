@@ -45,7 +45,7 @@ criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
 
 pub fn bench_field(c: &mut Criterion) {
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand::rng();
 
     let mut grp_alg = c.benchmark_group("field");
 
@@ -119,7 +119,7 @@ pub fn bench_field(c: &mut Criterion) {
 }
 
 pub fn bench_algebra(c: &mut Criterion) {
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand::rng();
 
     let mut grp_alg = c.benchmark_group("algebra");
 
@@ -143,7 +143,7 @@ pub fn bench_algebra(c: &mut Criterion) {
 }
 
 pub fn bench_hash(c: &mut Criterion) {
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand::rng();
 
     let mut grp_hash = c.benchmark_group("hash");
     grp_hash.bench_function("poseidon_hash", |b| {
@@ -165,7 +165,7 @@ pub fn bench_hash(c: &mut Criterion) {
 
 pub fn bench_signature(c: &mut Criterion) {
     pub fn rand_251bit_felt() -> Felt {
-        let rng = &mut rand::thread_rng();
+        let rng = &mut rand::rng();
         loop {
             let felt = Felt::random(rng);
             if !felt.has_more_than_251_bits() {

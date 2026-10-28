@@ -193,7 +193,7 @@ mod tests {
     use p2p_proto::consensus::{ProposalPart, Transaction};
     use proptest::prelude::*;
     use rand::seq::SliceRandom;
-    use rand::{Rng, SeedableRng};
+    use rand::{Rng, RngExt, SeedableRng};
 
     use super::*;
 
@@ -228,7 +228,7 @@ mod tests {
     ///
     /// All fields (proposer, valid_round, commitment) are randomly generated.
     fn create_valid_empty_proposal(seed: u64) -> Vec<ProposalPart> {
-        let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
         vec![
             ProposalPart::Init(fake::Faker.fake_with_rng(&mut rng)),
@@ -242,14 +242,14 @@ mod tests {
     /// Content parts are 1..50 transactions split into randomly-sized batches,
     /// shuffled among each other.
     fn create_valid_non_empty_proposal(seed: u64) -> Vec<ProposalPart> {
-        let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
         let mut parts = Vec::new();
 
         parts.push(ProposalPart::Init(fake::Faker.fake_with_rng(&mut rng)));
 
         // Content parts in random order
-        let num_txns: usize = rng.gen_range(1..50);
+        let num_txns: usize = rng.random_range(1..50);
         let transactions: Vec<Transaction> = (0..num_txns)
             .map(|_| fake::Faker.fake_with_rng(&mut rng))
             .collect();
@@ -273,11 +273,11 @@ mod tests {
     /// happens to not break validity (e.g. shuffle lands in a valid order),
     /// the proposal is force-broken by removing Init or prepending Fin.
     fn create_invalid_proposal(seed: u64) -> Vec<ProposalPart> {
-        let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
         // Use a different seed for the base proposal so they don't correlate
         let mut parts = create_valid_non_empty_proposal(seed.wrapping_add(1));
-        let mutation = ALL_MUTATIONS[rng.gen_range(0..ALL_MUTATIONS.len())];
+        let mutation = ALL_MUTATIONS[rng.random_range(0..ALL_MUTATIONS.len())];
 
         apply_mutation(&mut parts, &mut rng, mutation);
 
@@ -307,7 +307,7 @@ mod tests {
             }
             Mutation::DuplicateInit => {
                 if let Some(init) = parts.iter().find(|p| p.is_proposal_init()).cloned() {
-                    let pos = rng.gen_range(0..=parts.len());
+                    let pos = rng.random_range(0..=parts.len());
                     parts.insert(pos, init);
                 }
             }
@@ -315,12 +315,12 @@ mod tests {
                 parts.retain(|p| !p.is_transaction_batch());
             }
             Mutation::AddEmptyTransactionBatch => {
-                let pos = rng.gen_range(0..=parts.len());
+                let pos = rng.random_range(0..=parts.len());
                 parts.insert(pos, ProposalPart::TransactionBatch(vec![]));
             }
             Mutation::DuplicateFin => {
                 if let Some(fin) = parts.iter().find(|p| p.is_proposal_fin()).cloned() {
-                    let pos = rng.gen_range(0..=parts.len());
+                    let pos = rng.random_range(0..=parts.len());
                     parts.insert(pos, fin);
                 }
             }
@@ -451,7 +451,7 @@ mod tests {
 
         // Walk between elements, 30% chance of placing a cut
         for i in 1..v.len() {
-            if rng.gen_bool(0.3) {
+            if rng.random_bool(0.3) {
                 boundaries.push(i);
             }
         }

@@ -59,7 +59,7 @@ pathfinder-validator = { path = "../validator", optional = true }
 pathfinder-version = { path = "../version" }
 primitive-types = { workspace = true }
 rand = { workspace = true }
-rand_chacha = { workspace = true }
+rand_08 = { package = "rand", version = "0.8" }
 rayon = { workspace = true }
 reqwest = { workspace = true }
 rustls = { workspace = true }

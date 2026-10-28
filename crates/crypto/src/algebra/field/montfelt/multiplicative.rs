@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_mul_random() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let bn_p = BigUint::from_str(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481",
         )

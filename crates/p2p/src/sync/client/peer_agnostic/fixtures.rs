@@ -30,7 +30,7 @@ use pathfinder_common::transaction::{
 };
 use pathfinder_tagged::Tagged;
 use pathfinder_tagged_debug_derive::TaggedDebug;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use tokio::sync::Mutex;
 
 use super::ClassDefinition;
@@ -264,9 +264,7 @@ pub fn state_diff(tag: i32) -> StateUpdateData {
         (
             [].into(),
             [(
-                *ContractAddress::SYSTEM
-                    .choose(&mut rand::thread_rng())
-                    .unwrap(),
+                *ContractAddress::SYSTEM.choose(&mut rand::rng()).unwrap(),
                 Faker.fake(),
             )]
             .into(),

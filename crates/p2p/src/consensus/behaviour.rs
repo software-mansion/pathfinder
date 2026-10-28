@@ -135,7 +135,7 @@ impl ApplicationBehaviour for Behaviour {
                     stream_msgs.extend(msgs);
                 }
                 if shuffle {
-                    stream_msgs.shuffle(&mut rand::thread_rng());
+                    stream_msgs.shuffle(&mut rand::rng());
                 }
                 for msg in stream_msgs {
                     let topic = Sha256Topic::new(TOPIC_PROPOSALS);

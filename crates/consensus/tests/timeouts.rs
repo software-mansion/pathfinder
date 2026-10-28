@@ -28,7 +28,7 @@ async fn single_node_propose_timeout_advances_round() {
     pause();
 
     // Build a single-validator set
-    let sk = SigningKey::new(rand::rngs::OsRng);
+    let sk = SigningKey::new(rand_08::rngs::OsRng);
     let pk = sk.verification_key();
     let addr = NodeAddress("0x01".to_string());
     let pubkey = PublicKey::from_bytes(pk.to_bytes());
@@ -82,7 +82,7 @@ async fn single_node_prevote_timeout_advances_round() {
     pause();
 
     // Build a single-validator set
-    let sk = SigningKey::new(rand::rngs::OsRng);
+    let sk = SigningKey::new(rand_08::rngs::OsRng);
     let pk = sk.verification_key();
     let addr = NodeAddress("0x0000123".to_string());
     let pubkey = PublicKey::from_bytes(pk.to_bytes());
@@ -150,7 +150,7 @@ async fn single_node_precommit_timeout_advances_round() {
     pause();
 
     // Build a single-validator set
-    let sk = SigningKey::new(rand::rngs::OsRng);
+    let sk = SigningKey::new(rand_08::rngs::OsRng);
     let pk = sk.verification_key();
     let addr = NodeAddress("0x0000456".to_string());
     let pubkey = PublicKey::from_bytes(pk.to_bytes());
