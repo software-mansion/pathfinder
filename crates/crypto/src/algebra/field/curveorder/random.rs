@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::CurveOrderMontFelt;
 
@@ -6,10 +6,10 @@ impl CurveOrderMontFelt {
     /// Try to sample a random field element
     pub fn sample<R: Rng>(rng: &mut R) -> Option<Self> {
         let mut s = CurveOrderMontFelt([
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
-            rng.gen::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
+            rng.random::<u64>(),
         ]);
         s.0[3] &= 0xffffffffffffffffu64 >> CurveOrderMontFelt::ZERO_BITS;
         if s.lt(&CurveOrderMontFelt::P) {

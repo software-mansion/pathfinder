@@ -15,8 +15,8 @@ pub struct ResourceLimits {
 impl<T> Dummy<T> for ResourceLimits {
     fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
         Self {
-            max_amount: Felt::from_u64(rng.gen()),
-            max_price_per_unit: Felt::from_u128(rng.gen()),
+            max_amount: Felt::from_u64(rand::RngExt::random(rng)),
+            max_price_per_unit: Felt::from_u128(rand::RngExt::random(rng)),
         }
     }
 }

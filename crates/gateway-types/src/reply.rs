@@ -1675,7 +1675,7 @@ pub mod transaction {
 
     impl<T> Dummy<T> for DeclareTransaction {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-            match rng.gen_range(0..=3) {
+            match rand::RngExt::random_range(rng, 0..=3) {
                 0 => {
                     let mut v0: DeclareTransactionV0V1 = Faker.fake_with_rng(rng);
                     v0.nonce = TransactionNonce::ZERO;
@@ -1767,7 +1767,7 @@ pub mod transaction {
     impl<T> Dummy<T> for DeployTransaction {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
             Self {
-                version: TransactionVersion(Felt::from_u64(rng.gen_range(0..=1))),
+                version: TransactionVersion(Felt::from_u64(rand::RngExt::random_range(rng, 0..=1))),
                 contract_address: Faker.fake_with_rng(rng),
                 contract_address_salt: Faker.fake_with_rng(rng),
                 class_hash: Faker.fake_with_rng(rng),

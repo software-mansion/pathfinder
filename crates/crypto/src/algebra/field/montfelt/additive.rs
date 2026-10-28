@@ -323,7 +323,7 @@ mod tests {
     #[test]
     fn test_add_sub_random() {
         // Tests `a + b - b = a` and `a - b + b = a`
-        let rng = &mut rand::thread_rng();
+        let rng = &mut rand::rng();
         for _ in 0..1000 {
             let a = MontFelt::random(rng);
             let b = MontFelt::random(rng);

@@ -26,7 +26,7 @@ use pathfinder_common::SignedBlockHeader;
 use pathfinder_crypto::signature::SignatureError;
 use pathfinder_crypto::Felt;
 use rand::seq::IteratorRandom;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::{Storage, StorageBuilder};
 
@@ -230,7 +230,7 @@ pub mod generate {
     }
 
     pub fn with_config(n: usize, config: Config) -> Vec<Block> {
-        with_rng_and_config(n, &mut rand::thread_rng(), config)
+        with_rng_and_config(n, &mut rand::rng(), config)
     }
 
     pub fn with_rng_and_config<R: Rng>(n: usize, rng: &mut R, config: Config) -> Vec<Block> {
@@ -334,8 +334,8 @@ pub mod generate {
                 .map(|(_, _, events)| events.len())
                 .sum();
 
-            let num_cairo_classes = rng.gen_range(occurrence.cairo.clone());
-            let num_sierra_classes = rng.gen_range(occurrence.sierra.clone());
+            let num_cairo_classes = rng.random_range(occurrence.cairo.clone());
+            let num_sierra_classes = rng.random_range(occurrence.sierra.clone());
 
             let cairo_defs = (0..num_cairo_classes)
                 .map(|_| {
@@ -389,19 +389,19 @@ pub mod generate {
                 .chain(declared_sierra_classes.keys().map(|x| ClassHash(x.0)))
                 .collect::<HashSet<_>>();
 
-            let storage_updates = rng.gen_range(occurrence.storage.clone());
-            let nonce_updates = rng.gen_range(occurrence.nonce.clone());
+            let storage_updates = rng.random_range(occurrence.storage.clone());
+            let nonce_updates = rng.random_range(occurrence.nonce.clone());
 
             let num_contract_updates = storage_updates.max(nonce_updates);
 
             let mut do_storage_update = vec![false; num_contract_updates];
             (0..num_contract_updates)
-                .choose_multiple(rng, storage_updates)
+                .sample(rng, storage_updates)
                 .into_iter()
                 .for_each(|i| do_storage_update[i] = true);
             let mut do_nonce_update = vec![false; num_contract_updates];
             (0..num_contract_updates)
-                .choose_multiple(rng, nonce_updates)
+                .sample(rng, nonce_updates)
                 .into_iter()
                 .for_each(|i| do_nonce_update[i] = true);
 

@@ -24,7 +24,7 @@ impl<A: ValidatorAddress> ValidatorSetProvider<A> for StaticSet<A> {
 /// Creates a single validator with the given address.
 pub fn create_validator(addr: NodeAddress) -> Validator<NodeAddress> {
     use pathfinder_consensus::{PublicKey, SigningKey};
-    use rand::rngs::OsRng;
+    use rand_08::rngs::OsRng;
 
     let sk = SigningKey::new(OsRng);
     let pk = sk.verification_key();
@@ -127,7 +127,7 @@ async fn wal_concurrent_heights_retention_test() {
     let mut receivers = HashMap::new();
 
     for i in 1..=NUM_VALIDATORS {
-        let sk = SigningKey::new(rand::rngs::OsRng);
+        let sk = SigningKey::new(rand_08::rngs::OsRng);
         let pk = sk.verification_key();
         let addr = NodeAddress(format!("0x{i}"));
         let pubkey = PublicKey::from_bytes(pk.to_bytes());

@@ -60,13 +60,13 @@ pub fn get_pk(sk: Felt) -> Option<Felt> {
 }
 
 /// Generate a signature `(r,s)` on message z with secret key sk with `k` from
-/// thread_rng, not constant time!
+/// the thread-local RNG, not constant time!
 ///
-/// This algorithm tries different random `k` from thread_rng until it finds a
-/// valid signature. The algorithm is **NOT** constant time and care should be
-/// taken when used in timing-sensitive contexts.
+/// This algorithm tries different random `k` from the thread-local RNG until
+/// it finds a valid signature. The algorithm is **NOT** constant time and care
+/// should be taken when used in timing-sensitive contexts.
 pub fn ecdsa_sign(sk: Felt, z: Felt) -> Result<(Felt, Felt), SignatureError> {
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand::rng();
     loop {
         let k = Felt::random(rng);
         match ecdsa_sign_k(sk, z, k) {

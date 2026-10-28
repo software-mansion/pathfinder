@@ -40,7 +40,7 @@ pub struct Hash256(pub primitive_types::H256);
 
 impl<T> Dummy<T> for Hash256 {
     fn dummy_with_rng<R: Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-        Self(H256::random_using(rng))
+        Self(rand::RngExt::random::<[u8; 32]>(rng).into())
     }
 }
 

@@ -54,7 +54,7 @@ pub(super) mod i64_backed_u64 {
 
             impl<T> fake::Dummy<T> for $target {
                 fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-                    Self(rng.gen_range(0..i64::MAX as u64))
+                    Self(rand::RngExt::random_range(rng, 0..i64::MAX as u64))
                 }
             }
         };

@@ -1,6 +1,6 @@
 //! Various test utils used in other pathfinder related crates
 use fake::{Dummy, Fake, Faker};
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 /// In order to provide some basic consistency guarantees some containers just
 /// cannot be empty
@@ -9,7 +9,7 @@ where
     C: std::iter::FromIterator<T>,
     T: Dummy<Faker>,
 {
-    let len = rng.gen_range(1..10);
+    let len = rng.random_range(1..10);
 
     std::iter::repeat_with(|| Faker.fake_with_rng(rng))
         .take(len)

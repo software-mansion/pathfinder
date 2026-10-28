@@ -130,7 +130,7 @@ impl Client {
             w.update(peers);
             peers_vec
         };
-        peers.shuffle(&mut rand::thread_rng());
+        peers.shuffle(&mut rand::rng());
 
         peers
     }

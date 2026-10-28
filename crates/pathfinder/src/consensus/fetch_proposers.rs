@@ -4,7 +4,6 @@ use pathfinder_common::{ChainId, ContractAddress};
 use pathfinder_consensus::{PublicKey, SigningKey, Validator, ValidatorSet};
 use pathfinder_consensus_fetcher as consensus_fetcher;
 use pathfinder_storage::Storage;
-use rand::rngs::OsRng;
 
 use crate::config::ConsensusConfig;
 use crate::consensus::validator_cache::ValidatorCache;
@@ -122,7 +121,7 @@ pub fn create_proposers_from_config(
         .iter()
         .map(|address| {
             // TODO: This is obviously not production ready.
-            let sk = SigningKey::new(OsRng);
+            let sk = SigningKey::new(rand_08::rngs::OsRng);
             let vk = sk.verification_key();
             let public_key = PublicKey::from_bytes(vk.to_bytes());
 

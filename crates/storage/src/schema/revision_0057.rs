@@ -447,7 +447,7 @@ pub(crate) mod dto {
 
     impl<T> Dummy<T> for ExecutionResources {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-            let (l1_gas, l1_data_gas) = if rng.gen() {
+            let (l1_gas, l1_data_gas) = if rand::RngExt::random(rng) {
                 (Some(rng.next_u32() as u128), Some(rng.next_u32() as u128))
             } else {
                 (None, None)
@@ -1551,7 +1551,7 @@ pub(crate) mod dto {
     impl<T> Dummy<T> for DeployTransaction {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
             Self {
-                version: Felt::from_u64(rng.gen_range(0..=1)).into(),
+                version: Felt::from_u64(rand::RngExt::random_range(rng, 0..=1)).into(),
                 contract_address: ContractAddress::ZERO.0.into(), // Faker.fake_with_rng(rng), FIXME
                 contract_address_salt: Faker.fake_with_rng(rng),
                 class_hash: Faker.fake_with_rng(rng),

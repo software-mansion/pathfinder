@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_generator_mul() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let x = CurveOrderMontFelt::random(&mut rng);
 
         let standard = AffinePoint::from(&CURVE_G.multiply_elm(&x));

@@ -37,11 +37,11 @@ impl ProposerSelector<NodeAddress> for LastValidatorSelector {
 #[test]
 fn test_proposer_selection_logic_direct() {
     // Create validators with distinct addresses
-    let sk1 = SigningKey::new(rand::rngs::OsRng);
+    let sk1 = SigningKey::new(rand_08::rngs::OsRng);
     let pk1 = sk1.verification_key();
-    let sk2 = SigningKey::new(rand::rngs::OsRng);
+    let sk2 = SigningKey::new(rand_08::rngs::OsRng);
     let pk2 = sk2.verification_key();
-    let sk3 = SigningKey::new(rand::rngs::OsRng);
+    let sk3 = SigningKey::new(rand_08::rngs::OsRng);
     let pk3 = sk3.verification_key();
 
     let validator1 = NodeAddress("validator_1".to_string());

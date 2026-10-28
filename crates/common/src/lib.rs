@@ -362,7 +362,7 @@ pub struct EthereumAddress(pub H160);
 
 impl<T> Dummy<T> for EthereumAddress {
     fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
-        Self(H160::random_using(rng))
+        Self(rand::RngExt::random::<[u8; 20]>(rng).into())
     }
 }
 

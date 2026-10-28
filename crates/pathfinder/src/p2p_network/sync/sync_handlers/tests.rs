@@ -43,7 +43,7 @@ mod boundary_conditions {
     use p2p_proto::sync::state::StateDiffsRequest;
     use p2p_proto::sync::transaction::TransactionsRequest;
     use pathfinder_storage::StorageBuilder;
-    use rand::Rng;
+    use rand::RngExt;
     use rstest::rstest;
 
     use super::I64_MAX;
@@ -68,9 +68,7 @@ mod boundary_conditions {
 
         fn invalid_start() -> Iteration {
             Iteration {
-                start: BlockNumberOrHash::Number(
-                    rand::thread_rng().gen_range(I64_MAX + 1..=u64::MAX),
-                ),
+                start: BlockNumberOrHash::Number(rand::rng().random_range(I64_MAX + 1..=u64::MAX)),
                 ..Faker.fake()
             }
         }
@@ -520,7 +518,7 @@ mod prop {
             let storage = StorageBuilder::in_memory().unwrap();
             // Explicitly choose RNG to make sure seeded storage is always
             // reproducible
-            let mut rng = rand_chacha::ChaCha12Rng::seed_from_u64(seed);
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
             let blocks = generate::with_rng_and_config(
                 num_blocks.try_into().unwrap(),
                 &mut rng,

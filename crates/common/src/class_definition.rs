@@ -4,7 +4,7 @@ use std::fmt;
 use bytes::Bytes;
 use fake::{Dummy, Fake, Faker};
 use pathfinder_crypto::Felt;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use serde_with::serde_as;
@@ -201,7 +201,7 @@ impl<T> Dummy<T> for SelectorAndOffset {
     fn dummy_with_rng<R: rand::prelude::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
         Self {
             selector: Faker.fake_with_rng(rng),
-            offset: ByteCodeOffset(Felt::from_u64(rng.gen())),
+            offset: ByteCodeOffset(Felt::from_u64(rng.random())),
         }
     }
 }

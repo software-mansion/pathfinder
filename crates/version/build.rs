@@ -16,10 +16,9 @@ pub fn main() {
 
     const ENABLE_DIRTY: bool = true;
     const ENABLE_TAGS: bool = true;
-    let gitcl = vergen_gitcl::GitclBuilder::default()
+    let gitcl = vergen_gitcl::Gitcl::builder()
         .describe(ENABLE_TAGS, ENABLE_DIRTY, None)
-        .build()
-        .expect("vergen failed; this is probably due to missing .git directory");
+        .build();
     vergen_gitcl::Emitter::new()
         .add_instructions(&gitcl)
         .expect("vergen failed; this is probably due to missing .git directory")

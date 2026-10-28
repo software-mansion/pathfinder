@@ -63,7 +63,7 @@ blockifier = { version = "0.20.0-rc.1", features = [
     "reexecution",
 ] }
 bytes = "1.11.1"
-cached = "4.0.2"
+cached = "0.59.0"
 # This one needs to match the version used by blockifier
 cairo-lang-starknet-classes = "=2.19.5"
 # This one needs to match the version used by blockifier
@@ -102,7 +102,7 @@ metrics = "0.24.5"
 metrics-exporter-prometheus = { version = "0.18.3", default-features = false }
 mime = "0.3"
 mockall = "0.15.0"
-num-bigint = "0.5.1"
+num-bigint = "0.4.6"
 num-traits = "0.2.19"
 paste = "1.0.15"
 pretty_assertions_sorted = "1.2.3"
@@ -117,7 +117,6 @@ r2d2 = "0.8.10"
 r2d2_sqlite = "0.34.0"
 # upgrade once supported by `primitive-types`
 rand = "0.10.1"
-rand_chacha = "0.9.0"
 rayon = "1.12.0"
 reqwest = { version = "0.13.3", default-features = false, features = [
     "http2",
@@ -137,7 +136,7 @@ sha3 = "0.12"
 siphasher = "1.0.3"
 smallvec = "1.15.1"
 # This one needs to match the version used by blockifier
-starknet-types-core = "=1.0.0"
+starknet-types-core = "=0.2.4"
 # This one needs to match the version used by blockifier
 starknet_api = { version = "0.20.0-rc.1" }
 syn = "3.0"
