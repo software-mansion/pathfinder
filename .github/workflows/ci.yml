@@ -20,8 +20,8 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: dorny/paths-filter@v4.0.3
         id: filter
         with:
           filters: |
@@ -42,17 +42,19 @@ jobs:
       LLVM_SYS_191_PREFIX: "/usr/lib/llvm-19"
       TABLEGEN_190_PREFIX: "/usr/lib/llvm-19"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: ./.github/actions/free-disk-space
       - uses: rui314/setup-mold@v1
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' }}
-      - uses: arduino/setup-protoc@v3
+      - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: taiki-e/install-action@nextest
-      - uses: gerlero/add-apt-repository@v1
+      - uses: taiki-e/install-action@v2.90.3
+        with:
+          tool: nextest
+      - uses: gerlero/add-apt-repository@v1.2.1
         with:
           uri: http://apt.llvm.org/noble/
           suite: llvm-toolchain-noble-19
@@ -73,7 +75,7 @@ jobs:
       - name: Run unit tests with all features enabled excluding consensus integration tests
         run: timeout 10m cargo nextest run --cargo-profile ci-dev --no-fail-fast --all-targets --all-features --workspace --locked -E 'not test(/^test::consensus_[34]_nodes/)' --retries 2
       - name: Store timings with all features enabled
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: timings-all-features
           path: target/cargo-timings/
@@ -86,16 +88,18 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: ./.github/actions/free-disk-space
       - uses: rui314/setup-mold@v1
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' }}
-      - uses: arduino/setup-protoc@v3
+      - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@v2.90.3
+        with:
+          tool: nextest
       - name: Clear cache
         if: github.event_name == 'schedule'
         run: |
@@ -112,7 +116,7 @@ jobs:
         run: PATHFINDER_TEST_ENABLE_MARKER_FILES=1 timeout 30m cargo nextest run --test consensus -p pathfinder --features p2p,consensus-integration-tests --locked --retries 2 -j 1
       - name: Store test artifacts for consensus integration tests
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: consensus-integration-tests
           include-hidden-files: true
@@ -126,16 +130,18 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: ./.github/actions/free-disk-space
       - uses: rui314/setup-mold@v1
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' }}
-      - uses: arduino/setup-protoc@v3
+      - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@v2.90.3
+        with:
+          tool: nextest
       - name: Clear cache
         if: github.event_name =='schedule'
         run: |
@@ -147,7 +153,7 @@ jobs:
       - name: Run unit tests with default features
         run: timeout 10m cargo nextest run --cargo-profile ci-dev --no-fail-fast --all-targets --workspace --locked
       - name: Store timings with default features
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: timings-default-features
           path: target/cargo-timings/
@@ -162,14 +168,14 @@ jobs:
       LLVM_SYS_191_PREFIX: "/usr/lib/llvm-19"
       TABLEGEN_190_PREFIX: "/usr/lib/llvm-19"
     steps:
-      - uses: actions/checkout@v7
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@v7.0.1
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      - uses: arduino/setup-protoc@v3
+      - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: gerlero/add-apt-repository@v1
+      - uses: gerlero/add-apt-repository@v1.2.1
         with:
           uri: http://apt.llvm.org/noble/
           suite: llvm-toolchain-noble-19
@@ -191,9 +197,10 @@ jobs:
   rustfmt:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: actions/checkout@v7.0.1
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly
           components: rustfmt
       - run: |
           cargo +nightly fmt --all -- --check
@@ -206,11 +213,11 @@ jobs:
     env:
       RUSTDOCFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v7
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@v7.0.1
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      - uses: arduino/setup-protoc@v3
+      - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Clear cache
@@ -221,8 +228,8 @@ jobs:
   dep-sort:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: baptiste0928/cargo-install@v3
+      - uses: actions/checkout@v7.0.1
+      - uses: baptiste0928/cargo-install@v3.5.0
         with:
           crate: cargo-sort
           version: "~2.0.2"
@@ -232,7 +239,7 @@ jobs:
   typos:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: crate-ci/typos@v1.51.1
         with:
           files: .
@@ -242,7 +249,7 @@ jobs:
     if: needs.detect-changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: cargo check
         run: |
           cd crates/load-test
@@ -254,7 +261,7 @@ jobs:
   docker-rust-version:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Check Dockerfile Rust version matches rust-toolchain.toml
         run: |
           pin=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)
