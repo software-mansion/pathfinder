@@ -127,7 +127,7 @@ reqwest = { version = "0.13.3", default-features = false, features = [
 rstest = "0.27.0"
 rusqlite = "0.39.0"
 rustls = "0.23.38"
-# TODO: Remove once fixed upstream.
+# TODO(#3625): Remove once fixed upstream.
 # Blockifier `0.21.0-rc.1` pins `salsa = "=0.28.2"`, which requires this entry here.
 salsa-macro-rules = "=0.28.2"
 semver = "1.0.28"
