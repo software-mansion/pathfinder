@@ -114,6 +114,7 @@ impl ConcurrentBlockExecutor {
             old_block_number_and_hash,
             worker_pool,
             block_deadline,
+            None,
         )
         .context("Failed to start concurrent block executor")?;
 
