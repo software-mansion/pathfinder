@@ -17,6 +17,8 @@ libc = { workspace = true }
 num-bigint = { workspace = true }
 pathfinder-common = { path = "../common" }
 pathfinder-crypto = { path = "../crypto" }
+# TODO(#3625): Not used directly, only pins a transitive dependency. See the workspace manifest.
+salsa-macro-rules = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["arbitrary_precision", "raw_value"] }
 starknet_api = { workspace = true }
