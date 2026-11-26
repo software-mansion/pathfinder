@@ -15,6 +15,10 @@
 ///     --data-directory /tmp
 /// ```
 ///
+/// By default the tool only listens on `127.0.0.1`. To serve pathfinder running
+/// on another machine, pass `--host 0.0.0.0` (or the address of a specific
+/// interface) and point pathfinder's gateway URLs at that machine.
+///
 /// Optionally this tool can simulate reorgs. To have the tool return data so
 /// that pathfinder reorgs from block 50 to 40 use the following command line:
 /// `cargo run --release -p pathfinder --example feeder_gateway
@@ -22,7 +26,7 @@
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 use std::future::Future;
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -74,6 +78,14 @@ use preconfirmed::resolve_preconfirmed_response;
 struct Cli {
     #[arg(long_help = "Database path.")]
     pub database_path: PathBuf,
+    #[arg(
+        long,
+        long_help = "IP address to listen on. Use 0.0.0.0 (or a specific interface address) \
+                     to accept connections from other machines.",
+        value_name = "IP",
+        default_value_t = IpAddr::V4(Ipv4Addr::LOCALHOST)
+    )]
+    pub host: IpAddr,
     #[arg(
         long,
         long_help = "Port to listen on, 0 means random OS assigned value",
@@ -715,7 +727,7 @@ async fn serve(cli: Cli, storage_rx: Receiver<Option<(Storage, Chain)>>) -> anyh
         )
         .with(warp::filters::trace::request());
 
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], cli.port)))
+    let listener = tokio::net::TcpListener::bind(SocketAddr::new(cli.host, cli.port))
         .await
         .context("Binding server")?;
     let socket_addr = listener.local_addr().context("Getting local address")?;
