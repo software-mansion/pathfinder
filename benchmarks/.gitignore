@@ -1,2 +1,5 @@
 runs/
 harness/target/
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*

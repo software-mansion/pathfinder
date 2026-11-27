@@ -1,0 +1,254 @@
+# Benchmarks a pathfinder ref on a new GCP VM and shows the report on the run
+# page. By default it compares the ref with the latest release. With
+# `baseline: none` it measures the ref alone and reports absolute values.
+# Start it by hand from the Actions tab.
+#
+# It reads the GitHub variables that `terraform output` prints in
+# benchmarks/infra. The VM itself (machine type, disk, network) is the
+# instance template in benchmarks/infra/main.tf.
+#
+# GitHub runners build the binaries and cache them in the bucket by commit
+# and profile. The VM reads its job from metadata (see
+# benchmarks/infra/vm-startup.sh), writes the results to the bucket and
+# powers off. The last step deletes the VM, even if the run failed or was
+# cancelled. If that step never runs, GCE deletes the VM after 6 hours.
+
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Ref to benchmark: a tag, branch or commit. Leave empty for the ref this workflow runs on"
+        type: string
+        default: ""
+      baseline:
+        description: "Ref to compare against. Leave empty for the latest release, or set `none` to measure the target alone"
+        type: string
+        default: ""
+      scenarios:
+        description: "Comma-separated scenarios"
+        type: string
+        # TODO: Add more scenarios here
+        default: "rpc"
+      iterations:
+        description: "Iterations per scenario"
+        type: number
+        default: 3
+      profile:
+        description: "Cargo profile of the pathfinder binaries"
+        type: choice
+        options: [release, release-lto]
+        default: release
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  CLOUDSDK_CORE_PROJECT: ${{ vars.BENCH_GCP_PROJECT }}
+  BUCKET: ${{ vars.BENCH_BUCKET }}
+  CARGO_PROFILE: ${{ inputs.profile }}
+
+jobs:
+  resolve:
+    name: Resolve refs
+    runs-on: ubuntu-24.04
+    outputs:
+      binaries: ${{ steps.resolve.outputs.binaries }}
+      builds: ${{ steps.resolve.outputs.builds }}
+      run_prefix: ${{ steps.resolve.outputs.run_prefix }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Resolve refs to commits
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE: ${{ inputs.baseline }}
+          TARGET: ${{ inputs.target || github.ref_name }}
+        run: |
+          binaries='[]'
+          add_binary() {
+            local sha
+            if ! sha=$(git rev-parse --verify --quiet "origin/$2^{commit}" ||
+                       git rev-parse --verify --quiet "$2^{commit}"); then
+              echo "::error::Can't resolve ref '$2'"
+              exit 1
+            fi
+            binaries=$(jq -c --arg label "$1" --arg sha "$sha" \
+              '. + [{label: $label, sha: $sha}]' <<<"$binaries")
+            echo "| $1 | \`$2\` | \`$sha\` |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          echo "| Binary | Ref | Commit |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -z $BASELINE ]]; then
+            BASELINE=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          fi
+          add_binary target "$TARGET"
+          if [[ $BASELINE != none ]]; then
+            add_binary baseline "$BASELINE"
+          fi
+
+          # `builds` has each commit once, also when both refs point to the
+          # same commit, as in a run of a binary against itself.
+          {
+            echo "binaries=$binaries"
+            echo "builds=$(jq -c 'unique_by(.sha)' <<<"$binaries")"
+            echo "run_prefix=gs://$BUCKET/runs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.binary.label }}
+    needs: resolve
+    # Ubuntu 22.04 has an older glibc than the Debian 12 VM image, so the
+    # binary runs there.
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        binary: ${{ fromJSON(needs.resolve.outputs.builds) }}
+    env:
+      PATHFINDER_URL: gs://${{ vars.BENCH_BUCKET }}/bin/${{ matrix.binary.sha }}/${{ inputs.profile }}/pathfinder
+    steps:
+      # Check out before logging in. Checkout cleans the workspace and would
+      # delete the credentials file that the login writes there.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ matrix.binary.sha }}
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.BENCH_WIF_PROVIDER }}
+          service_account: ${{ vars.BENCH_GITHUB_SERVICE_ACCOUNT }}
+      - name: Check the cache
+        id: cache
+        run: |
+          if gcloud storage ls "$PATHFINDER_URL" >/dev/null 2>&1; then
+            echo "Cached: $PATHFINDER_URL"
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.cache.outputs.hit != 'true'
+        uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and upload
+        if: steps.cache.outputs.hit != 'true'
+        run: |
+          cargo build --locked --profile "$CARGO_PROFILE" --bin pathfinder
+          gcloud storage cp "target/$CARGO_PROFILE/pathfinder" "$PATHFINDER_URL"
+
+  harness:
+    name: Build harness
+    needs: resolve
+    runs-on: ubuntu-24.04
+    env:
+      HARNESS_URL: ${{ needs.resolve.outputs.run_prefix }}/bench
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.BENCH_WIF_PROVIDER }}
+          service_account: ${{ vars.BENCH_GITHUB_SERVICE_ACCOUNT }}
+      - name: Build and upload
+        run: |
+          cargo build --locked --release --manifest-path benchmarks/harness/Cargo.toml
+          gcloud storage cp benchmarks/harness/target/release/bench "$HARNESS_URL"
+
+  run:
+    name: Run on a VM
+    needs: [resolve, build, harness]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      VM_NAME: pathfinder-bench-${{ github.run_id }}-${{ github.run_attempt }}
+      ZONE: ${{ vars.BENCH_GCP_ZONE }}
+      RUN_PREFIX: ${{ needs.resolve.outputs.run_prefix }}
+      BINARIES: ${{ needs.resolve.outputs.binaries }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.BENCH_WIF_PROVIDER }}
+          service_account: ${{ vars.BENCH_GITHUB_SERVICE_ACCOUNT }}
+
+      - name: Start the VM
+        env:
+          INSTANCE_TEMPLATE: ${{ vars.BENCH_INSTANCE_TEMPLATE }}
+          SCENARIOS: ${{ inputs.scenarios }}
+          ITERATIONS: ${{ inputs.iterations }}
+        run: |
+          binary_urls=$(jq -r --arg bin "gs://$BUCKET/bin" --arg profile "$CARGO_PROFILE" \
+            '[.[] | "\(.label)=\($bin)/\(.sha)/\($profile)/pathfinder"] | join(" ")' <<<"$BINARIES")
+          # Scenarios contain commas, so `^|^` switches the separator to `|`.
+          gcloud compute instances create "$VM_NAME" \
+            --zone "$ZONE" \
+            --source-instance-template "$INSTANCE_TEMPLATE" \
+            --metadata-from-file startup-script=benchmarks/infra/vm-startup.sh \
+            --metadata "^|^bench-run-prefix=$RUN_PREFIX|bench-binaries=$binary_urls|bench-scenarios=$SCENARIOS|bench-iterations=$ITERATIONS"
+
+      - name: Wait for the VM
+        id: wait
+        run: |
+          read_exit_code() {
+            gcloud storage cat "$RUN_PREFIX/exit-code" 2>/dev/null
+          }
+          until exit_code=$(read_exit_code); do
+            sleep 30
+            # An API error leaves the status unknown, so keep waiting. A
+            # deleted VM gives an empty status.
+            vm_status=$(gcloud compute instances list --zones "$ZONE" \
+              --filter "name=$VM_NAME" --format 'value(status)') || continue
+            if [[ ! $vm_status =~ ^(PROVISIONING|STAGING|RUNNING)$ ]]; then
+              # The VM powers off right after writing its exit code, so it
+              # may have stopped since the last check.
+              exit_code=$(read_exit_code) && break
+              echo "::error::The VM stopped without an exit code (status: ${vm_status:-deleted})"
+              exit 1
+            fi
+          done
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.wait.outputs.exit_code }}
+        run: |
+          mkdir -p results
+          gcloud storage cp "$RUN_PREFIX/vm.log" results/ 2>/dev/null || true
+          gcloud storage cp "$RUN_PREFIX/results/*" results/ 2>/dev/null || true
+          if [[ -f results/summary.md ]]; then
+            cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Raw results: \`$RUN_PREFIX\`" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ -z $EXIT_CODE ]]; then
+            # The VM died or hung before writing an exit code, so its log may
+            # not be in the bucket. The serial console has it too.
+            echo "Last lines of the VM's serial console:"
+            gcloud compute instances get-serial-port-output "$VM_NAME" --zone "$ZONE" \
+              2>/dev/null | tail -n 100 || true
+          elif [[ $EXIT_CODE != 0 ]]; then
+            echo "::error::The benchmark failed on the VM (exit code $EXIT_CODE), last lines of its log:"
+            tail -n 50 results/vm.log || true
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: benchmark-results
+          path: results
+          if-no-files-found: ignore
+
+      - name: Delete the VM
+        if: always()
+        run: |
+          # Fine if the VM doesn't exist, e.g. because creating it failed.
+          if ! output=$(gcloud compute instances delete "$VM_NAME" --zone "$ZONE" --quiet 2>&1); then
+            if [[ $output != *"was not found"* ]]; then
+              echo "$output"
+              echo "::error::Couldn't delete the VM $VM_NAME. GCE deletes it after 6 hours anyway."
+              exit 1
+            fi
+          fi
