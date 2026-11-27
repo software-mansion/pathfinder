@@ -50,6 +50,17 @@ variable "github_repository" {
   type        = string
 }
 
+variable "existing_github_provider" {
+  description = <<-EOT
+    An existing workload identity provider for GitHub Actions to use, as
+    POOL_ID/PROVIDER_ID. It must map `attribute.repository`. Leave empty to
+    create a pool that trusts only `github_repository`. Creating one needs the
+    Workload Identity Pool Admin role.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "results_retention_days" {
   description = "Days to keep run results in the bucket."
   type        = number
@@ -207,15 +218,19 @@ resource "google_service_account_iam_member" "github_acts_as_vm" {
 }
 
 # GitHub Actions logs in with its OIDC token, so no key is stored anywhere.
-# Only workflows of `github_repository` can log in.
+# The pool and provider below are created only without
+# `existing_github_provider`. Either way, only workflows of
+# `github_repository` can act as the workflow account.
 resource "google_iam_workload_identity_pool" "github" {
+  count                     = var.existing_github_provider == "" ? 1 : 0
   workload_identity_pool_id = "pathfinder-bench-github"
   display_name              = "Pathfinder benchmark GitHub"
   depends_on                = [google_project_service.apis]
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  count                              = var.existing_github_provider == "" ? 1 : 0
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github[0].workload_identity_pool_id
   workload_identity_pool_provider_id = "github"
   display_name                       = "GitHub Actions"
   attribute_mapping = {
@@ -228,10 +243,25 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   }
 }
 
+data "google_project" "this" {}
+
+locals {
+  github_pool = (
+    var.existing_github_provider == ""
+    ? google_iam_workload_identity_pool.github[0].name
+    : "projects/${data.google_project.this.number}/locations/global/workloadIdentityPools/${split("/", var.existing_github_provider)[0]}"
+  )
+  github_provider = (
+    var.existing_github_provider == ""
+    ? google_iam_workload_identity_pool_provider.github[0].name
+    : "${local.github_pool}/providers/${split("/", var.existing_github_provider)[1]}"
+  )
+}
+
 resource "google_service_account_iam_member" "github_login" {
   service_account_id = google_service_account.github.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
+  member             = "principalSet://iam.googleapis.com/${local.github_pool}/attribute.repository/${var.github_repository}"
 }
 
 # The GitHub variables the workflow reads.
@@ -252,7 +282,7 @@ output "BENCH_BUCKET" {
 }
 
 output "BENCH_WIF_PROVIDER" {
-  value = google_iam_workload_identity_pool_provider.github.name
+  value = local.github_provider
 }
 
 output "BENCH_GITHUB_SERVICE_ACCOUNT" {
