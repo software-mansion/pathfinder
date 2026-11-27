@@ -40,15 +40,22 @@ on:
         type: choice
         options: [release, release-lto]
         default: release
+  # TEMPORARY, remove before merging: runs on pushes to this branch, since a
+  # manual run needs the workflow on main.
+  push:
+    branches: [franciszekjob/3616-bench-workflow]
 
 permissions:
   contents: read
   id-token: write
 
+# Runs without the form, such as on a push, have empty inputs, so the defaults
+# of the form are repeated as `inputs.x || default` where an input is read.
 env:
   CLOUDSDK_CORE_PROJECT: ${{ vars.BENCH_GCP_PROJECT }}
   BUCKET: ${{ vars.BENCH_BUCKET }}
-  CARGO_PROFILE: ${{ inputs.profile }}
+  # CARGO_PROFILE: ${{ inputs.profile }}
+  CARGO_PROFILE: ${{ inputs.profile || 'release' }}
 
 jobs:
   resolve:
@@ -66,8 +73,13 @@ jobs:
         id: resolve
         env:
           GH_TOKEN: ${{ github.token }}
-          BASELINE: ${{ inputs.baseline }}
-          TARGET: ${{ inputs.target || github.ref_name }}
+          # TEMPORARY, remove before merging: test runs measure the target alone.
+          # BASELINE: ${{ inputs.baseline }}
+          BASELINE: ${{ inputs.baseline || 'none' }}
+          # TEMPORARY, remove before merging: a fixed target, so that test runs
+          # on pushes reuse the cached build.
+          # TARGET: ${{ inputs.target || github.ref_name }}
+          TARGET: ${{ inputs.target || 'v0.24.3' }}
         run: |
           binaries='[]'
           add_binary() {
@@ -110,7 +122,8 @@ jobs:
       matrix:
         binary: ${{ fromJSON(needs.resolve.outputs.builds) }}
     env:
-      PATHFINDER_URL: gs://${{ vars.BENCH_BUCKET }}/bin/${{ matrix.binary.sha }}/${{ inputs.profile }}/pathfinder
+      # PATHFINDER_URL: gs://${{ vars.BENCH_BUCKET }}/bin/${{ matrix.binary.sha }}/${{ inputs.profile }}/pathfinder
+      PATHFINDER_URL: gs://${{ vars.BENCH_BUCKET }}/bin/${{ matrix.binary.sha }}/${{ inputs.profile || 'release' }}/pathfinder
     steps:
       # Check out before logging in. Checkout cleans the workspace and would
       # delete the credentials file that the login writes there.
@@ -175,8 +188,10 @@ jobs:
       - name: Start the VM
         env:
           INSTANCE_TEMPLATE: ${{ vars.BENCH_INSTANCE_TEMPLATE }}
-          SCENARIOS: ${{ inputs.scenarios }}
-          ITERATIONS: ${{ inputs.iterations }}
+          # SCENARIOS: ${{ inputs.scenarios }}
+          SCENARIOS: ${{ inputs.scenarios || 'rpc' }}
+          # ITERATIONS: ${{ inputs.iterations }}
+          ITERATIONS: ${{ inputs.iterations || 3 }}
         run: |
           binary_urls=$(jq -r --arg bin "gs://$BUCKET/bin" --arg profile "$CARGO_PROFILE" \
             '[.[] | "\(.label)=\($bin)/\(.sha)/\($profile)/pathfinder"] | join(" ")' <<<"$BINARIES")
