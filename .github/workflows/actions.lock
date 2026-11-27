@@ -13,6 +13,11 @@ workflows:
     '.github/workflows/_test-binaries.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.2'
+    '.github/workflows/benchmark.yml':
+        - 'actions/checkout@v7.0.1'
+        - 'actions/upload-artifact@v7.0.2'
+        - 'arduino/setup-protoc@v3.0.0'
+        - 'google-github-actions/auth@v3.0.0'
     '.github/workflows/ci.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v7.0.2'
@@ -162,6 +167,11 @@ dependencies:
         repo_id: 846684751
         uses:
             - 'actions/cache@v6'
+    'google-github-actions/auth@v3.0.0':
+        ref: 'v3.0.0'
+        commit: 'sha1-7c6bc770dae815cd3e89ee6cdf493a5fab2cc093'
+        owner_id: 71461757
+        repo_id: 407242578
     'rui314/setup-mold@v1':
         ref: 'v1'
         commit: 'sha1-339e96b4ff1f3bd865856ba4cbbe8818a7acb038'
