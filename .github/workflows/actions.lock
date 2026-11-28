@@ -18,6 +18,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'arduino/setup-protoc@v3.0.0'
         - 'google-github-actions/auth@v3.0.0'
+        - 'mozilla-actions/sccache-action@v0.0.11'
     '.github/workflows/ci.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v7.0.2'
@@ -172,6 +173,11 @@ dependencies:
         commit: 'sha1-7c6bc770dae815cd3e89ee6cdf493a5fab2cc093'
         owner_id: 71461757
         repo_id: 407242578
+    'mozilla-actions/sccache-action@v0.0.11':
+        ref: 'v0.0.11'
+        commit: 'sha1-fc920bf0ec8de6ee65d409111f7ec508035751ba'
+        owner_id: 127126567
+        repo_id: 586802280
     'rui314/setup-mold@v1':
         ref: 'v1'
         commit: 'sha1-339e96b4ff1f3bd865856ba4cbbe8818a7acb038'

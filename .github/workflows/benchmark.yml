@@ -1,7 +1,7 @@
 # Benchmarks a pathfinder ref on a new GCP VM and shows the report on the run
-# page. By default it compares the ref with the latest release. With
-# `baseline: none` it measures the ref alone and reports absolute values.
-# Start it by hand from the Actions tab.
+# page. With a baseline it compares the two refs, without one it measures the
+# target alone and reports absolute values. Start it by hand from the Actions
+# tab.
 #
 # It reads the GitHub variables that `terraform output` prints in
 # benchmarks/infra. The VM itself (machine type, disk, network) is the
@@ -14,23 +14,21 @@
 # cancelled. If that step never runs, GCE deletes the VM after 6 hours.
 
 name: Benchmark
+# TEMPORARY, remove before merging: push runs have no target input.
+# run-name: "Benchmark ${{ inputs.target }}${{ inputs.baseline && format(' vs {0}', inputs.baseline) || ' (no baseline)' }}"
+run-name: "Benchmark ${{ inputs.target || 'v0.24.3' }}${{ inputs.baseline && format(' vs {0}', inputs.baseline) || ' (no baseline)' }}"
 
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Ref to benchmark: a tag, branch or commit. Leave empty for the ref this workflow runs on"
+        description: "Ref to benchmark: a tag, branch or commit. \"Use workflow from\" above only picks the version of this workflow and the harness, usually main"
         type: string
-        default: ""
+        required: true
       baseline:
-        description: "Ref to compare against. Leave empty for the latest release, or set `none` to measure the target alone"
+        description: "Ref to compare the target with. Leave empty to measure the target alone"
         type: string
         default: ""
-      scenarios:
-        description: "Comma-separated scenarios"
-        type: string
-        # TODO: Add more scenarios here
-        default: "rpc"
       iterations:
         description: "Iterations per scenario"
         type: number
@@ -44,6 +42,12 @@ on:
   # manual run needs the workflow on main.
   push:
     branches: [franciszekjob/3616-bench-workflow]
+
+# A new run of the same comparison cancels the older one, which then deletes
+# its VM.
+concurrency:
+  group: benchmark-${{ inputs.target }}-${{ inputs.baseline }}-${{ inputs.profile }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -72,13 +76,10 @@ jobs:
       - name: Resolve refs to commits
         id: resolve
         env:
-          GH_TOKEN: ${{ github.token }}
-          # TEMPORARY, remove before merging: test runs measure the target alone.
-          # BASELINE: ${{ inputs.baseline }}
-          BASELINE: ${{ inputs.baseline || 'none' }}
+          BASELINE: ${{ inputs.baseline }}
           # TEMPORARY, remove before merging: a fixed target, so that test runs
           # on pushes reuse the cached build.
-          # TARGET: ${{ inputs.target || github.ref_name }}
+          # TARGET: ${{ inputs.target }}
           TARGET: ${{ inputs.target || 'v0.24.3' }}
         run: |
           binaries='[]'
@@ -89,27 +90,28 @@ jobs:
               echo "::error::Can't resolve ref '$2'"
               exit 1
             fi
-            binaries=$(jq -c --arg label "$1" --arg sha "$sha" \
-              '. + [{label: $label, sha: $sha}]' <<<"$binaries")
-            echo "| $1 | \`$2\` | \`$sha\` |" >> "$GITHUB_STEP_SUMMARY"
+            binaries=$(jq -c --arg label "$1" --arg ref "$2" --arg sha "$sha" \
+              '. + [{label: $label, ref: $ref, sha: $sha}]' <<<"$binaries")
           }
 
-          echo "| Binary | Ref | Commit |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          if [[ -z $BASELINE ]]; then
-            BASELINE=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
-          fi
           add_binary target "$TARGET"
-          if [[ $BASELINE != none ]]; then
+          if [[ -n $BASELINE ]]; then
             add_binary baseline "$BASELINE"
           fi
+
+          # The run's directory in the bucket, named like the harness names
+          # its runs, e.g. `2026-11-28_14-03-12_my-branch_vs_v0.24.3`, in UTC.
+          # The workflow run ID at the end leads to the run page and keeps
+          # names unique.
+          refs=$(jq -r '[.[].ref | gsub("[^A-Za-z0-9._-]"; "-")] | join("_vs_")' <<<"$binaries")
+          run_name="$(date -u +%Y-%m-%d_%H-%M-%S)_${refs}_run-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 
           # `builds` has each commit once, also when both refs point to the
           # same commit, as in a run of a binary against itself.
           {
             echo "binaries=$binaries"
             echo "builds=$(jq -c 'unique_by(.sha)' <<<"$binaries")"
-            echo "run_prefix=gs://$BUCKET/runs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            echo "run_prefix=gs://$BUCKET/runs/$run_name"
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -145,10 +147,21 @@ jobs:
         uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - if: steps.cache.outputs.hit != 'true'
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Build and upload
         if: steps.cache.outputs.hit != 'true'
+        env:
+          # Compiled crates are cached in the bucket, so a commit close to one
+          # built before compiles mostly from the cache. sccache logs in with
+          # the credentials of the auth step.
+          RUSTC_WRAPPER: sccache
+          SCCACHE_GCS_BUCKET: ${{ vars.BENCH_BUCKET }}
+          SCCACHE_GCS_KEY_PREFIX: sccache
+          SCCACHE_GCS_RW_MODE: READ_WRITE
         run: |
           cargo build --locked --profile "$CARGO_PROFILE" --bin pathfinder
+          sccache --show-stats
           gcloud storage cp "target/$CARGO_PROFILE/pathfinder" "$PATHFINDER_URL"
 
   harness:
@@ -190,19 +203,16 @@ jobs:
       - name: Start the VM
         env:
           INSTANCE_TEMPLATE: ${{ vars.BENCH_INSTANCE_TEMPLATE }}
-          # SCENARIOS: ${{ inputs.scenarios }}
-          SCENARIOS: ${{ inputs.scenarios || 'rpc' }}
           # ITERATIONS: ${{ inputs.iterations }}
           ITERATIONS: ${{ inputs.iterations || 3 }}
         run: |
           binary_urls=$(jq -r --arg bin "gs://$BUCKET/bin" --arg profile "$CARGO_PROFILE" \
             '[.[] | "\(.label)=\($bin)/\(.sha)/\($profile)/pathfinder"] | join(" ")' <<<"$BINARIES")
-          # Scenarios contain commas, so `^|^` switches the separator to `|`.
           gcloud compute instances create "$VM_NAME" \
             --zone "$ZONE" \
             --source-instance-template "$INSTANCE_TEMPLATE" \
             --metadata-from-file startup-script=benchmarks/infra/vm-startup.sh \
-            --metadata "^|^bench-run-prefix=$RUN_PREFIX|bench-binaries=$binary_urls|bench-scenarios=$SCENARIOS|bench-iterations=$ITERATIONS"
+            --metadata "bench-run-prefix=$RUN_PREFIX,bench-binaries=$binary_urls,bench-iterations=$ITERATIONS"
 
       - name: Wait for the VM
         id: wait
@@ -210,8 +220,23 @@ jobs:
           read_exit_code() {
             gcloud storage cat "$RUN_PREFIX/exit-code" 2>/dev/null
           }
+          # The VM uploads its log every minute. Print the lines that are new
+          # since the last call. Only whole lines count, as the last line of
+          # an upload may be cut.
+          lines_shown=0
+          show_new_log_lines() {
+            gcloud storage cat "$RUN_PREFIX/vm.log" > vm.log 2>/dev/null || return 0
+            local lines
+            lines=$(wc -l < vm.log)
+            if (( lines > lines_shown )); then
+              sed -n "$((lines_shown + 1)),${lines}p" vm.log
+              lines_shown=$lines
+            fi
+          }
+
           until exit_code=$(read_exit_code); do
             sleep 30
+            show_new_log_lines
             # An API error leaves the status unknown, so keep waiting. A
             # deleted VM gives an empty status.
             vm_status=$(gcloud compute instances list --zones "$ZONE" \
@@ -224,6 +249,8 @@ jobs:
               exit 1
             fi
           done
+          # The VM uploads its final log before the exit code.
+          show_new_log_lines
           echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Report
@@ -234,10 +261,37 @@ jobs:
           mkdir -p results
           gcloud storage cp "$RUN_PREFIX/vm.log" results/ 2>/dev/null || true
           gcloud storage cp "$RUN_PREFIX/results/*" results/ 2>/dev/null || true
-          if [[ -f results/summary.md ]]; then
-            cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+          # What was measured, with links to the commits and to the changes
+          # between them.
+          repo_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          {
+            echo "| Binary | Ref | Commit |"
+            echo "|---|---|---|"
+            jq -r --arg repo "$repo_url" \
+              '.[] | "| \(.label) | `\(.ref)` | [`\(.sha[:9])`](\($repo)/commit/\(.sha)) |"' <<<"$BINARIES"
+            jq -r --arg repo "$repo_url" \
+              'map({(.label): .sha}) | add | select(.baseline)
+               | "\n[Changes from baseline to target](\($repo)/compare/\(.baseline)...\(.target))"' <<<"$BINARIES"
+            echo
+            if [[ -f results/summary.md ]]; then
+              cat results/summary.md
+            fi
+            echo "Raw results: \`$RUN_PREFIX\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # The run stays green on a regression, but the warning shows on the
+          # run page.
+          if [[ -f results/summary.json ]]; then
+            regressions=$(jq '[.scenarios[].metrics[] | select(.status == "regression")] | length' results/summary.json)
+            invalid=$(jq '[.scenarios[] | select((.invalid | length) > 0 or any(.metrics[]; .status == "invalid"))] | length' results/summary.json)
+            if (( regressions > 0 )); then
+              echo "::warning::$regressions metric(s) regressed, see the report in the run summary"
+            fi
+            if (( invalid > 0 )); then
+              echo "::warning::$invalid scenario(s) are invalid, see the report in the run summary"
+            fi
           fi
-          echo "Raw results: \`$RUN_PREFIX\`" >> "$GITHUB_STEP_SUMMARY"
 
           if [[ -z $EXIT_CODE ]]; then
             # The VM died or hung before writing an exit code, so its log may

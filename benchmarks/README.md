@@ -9,6 +9,24 @@ Every iteration measures all binaries back to back, in alternating order, so
 machine noise affects them equally, and the values of one iteration are
 compared as a pair.
 
+## Running in CI
+
+Start the Benchmark workflow from the Actions tab:
+
+- **Use workflow from** picks the version of the workflow and the harness,
+  usually `main`. It is not what gets measured.
+- **target** is the ref to measure: a branch, tag or commit.
+- **baseline** is the ref to compare it with, e.g. `main` or the latest
+  release. Leave it empty to measure the target alone.
+
+The workflow builds both refs, runs them on a new VM and deletes the VM at
+the end. While it runs, the "Wait for the VM" step shows the VM's log. The
+report is on the run's summary page, with links to both commits, and the
+results are also an artifact of the run. A regression shows as a warning but
+doesn't fail the run.
+
+The GCP setup is in `infra/`.
+
 ## Reading the report
 
 A report with a baseline ends with a legend. In short: ❌ is a regression and

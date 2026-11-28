@@ -68,7 +68,7 @@ variable "results_retention_days" {
 }
 
 variable "binaries_retention_days" {
-  description = "Days to keep cached binaries in the bucket."
+  description = "Days to keep cached binaries and compiled crates (sccache) in the bucket."
   type        = number
   default     = 30
 }
@@ -100,7 +100,7 @@ resource "google_storage_bucket" "bench" {
   lifecycle_rule {
     condition {
       age            = var.binaries_retention_days
-      matches_prefix = ["bin/"]
+      matches_prefix = ["bin/", "sccache/"]
     }
     action {
       type = "Delete"
