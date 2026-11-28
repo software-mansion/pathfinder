@@ -26,7 +26,7 @@ use crate::results::{
     METADATA_FILE,
     RESULTS_FILE,
 };
-use crate::scenarios::{Binary, Iteration, Scenario, ScenarioKind};
+use crate::scenarios::{Binary, Iteration, Scenario};
 
 /// Print a progress line with the current time to stderr.
 macro_rules! log {
@@ -53,9 +53,6 @@ pub struct RunArgs {
         value_parser = parse_binary
     )]
     pub binaries: Vec<Binary>,
-    /// Scenarios to run, comma-separated.
-    #[arg(long, value_delimiter = ',', required = true)]
-    pub scenarios: Vec<ScenarioKind>,
     /// How many times to measure the binaries. Each iteration measures all of
     /// them, in alternating order.
     #[arg(
@@ -71,18 +68,14 @@ pub struct RunArgs {
     pub output_dir: Option<PathBuf>,
 }
 
-/// Run the scenarios and return the run directory with the results.
+/// Run every scenario and return the run directory with the results.
 pub fn run(args: &RunArgs) -> Result<PathBuf> {
     let repo = repo_root();
     let binaries = resolve_binaries(&args.binaries)?;
 
-    // Set up every scenario first. An unimplemented scenario then fails right
-    // away instead of after the others have run for a long time.
-    let mut scenarios = args
-        .scenarios
-        .iter()
-        .map(|&kind| Ok((kind, Scenario::new(kind)?)))
-        .collect::<Result<Vec<_>>>()?;
+    // Set up every scenario first, so a failing setup stops the run before
+    // the others have measured for a long time.
+    let mut scenarios = Scenario::all()?;
 
     let runs_dir = match &args.output_dir {
         Some(dir) => absolute_path(dir),
@@ -101,8 +94,8 @@ pub fn run(args: &RunArgs) -> Result<PathBuf> {
     write_json(&run_dir.join(METADATA_FILE), &metadata)?;
 
     let mut results = ResultsWriter::create(&run_dir.join(RESULTS_FILE))?;
-    for (kind, scenario) in &mut scenarios {
-        run_scenario(*kind, scenario, &binaries, args.iterations, &mut results)?;
+    for scenario in &mut scenarios {
+        run_scenario(scenario, &binaries, args.iterations, &mut results)?;
     }
 
     log!("results in {}", run_dir.display());
@@ -111,13 +104,12 @@ pub fn run(args: &RunArgs) -> Result<PathBuf> {
 
 /// Measure one scenario `iterations` times and append the results.
 fn run_scenario(
-    kind: ScenarioKind,
     scenario: &mut Scenario,
     binaries: &[Binary],
     iterations: usize,
     results: &mut ResultsWriter,
 ) -> Result<()> {
-    let name = kind.as_str();
+    let name = scenario.name();
     for index in 0..iterations {
         let order = iteration_order(binaries, index);
         log!(

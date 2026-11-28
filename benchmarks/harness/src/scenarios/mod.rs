@@ -4,12 +4,12 @@
 //! them: per input, per load stage or per whole run. The runner only gives
 //! it the order of the binaries for each iteration.
 //!
-//! Only `rpc` exists, as a mock. The TODOs in [`Scenario::new`] describe what
-//! the other scenarios will measure.
+//! `bench run` runs every scenario. Only `rpc` exists, as a mock. The TODOs in
+//! [`Scenario::all`] describe the scenarios to come.
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 use crate::results::{Failure, Measurement};
 
@@ -38,28 +38,31 @@ pub struct Iteration {
 /// without trait objects.
 ///
 /// To add a scenario: add a variant with its struct, and an arm for it in
-/// [`Scenario::new`] and in [`Scenario::run_iteration`].
+/// [`Scenario::all`], [`Scenario::name`] and [`Scenario::run_iteration`].
 pub enum Scenario {
     Rpc(rpc::RpcScenario),
 }
 
 impl Scenario {
-    /// Set up a scenario. Fails for a scenario that isn't implemented, so
-    /// `bench run` can stop before measuring anything.
-    pub fn new(kind: ScenarioKind) -> Result<Self> {
-        match kind {
-            // A mock for now, see `rpc.rs`.
-            ScenarioKind::Rpc => Ok(Self::Rpc(rpc::RpcScenario)),
-            // TODO: sync a fixed block range from a fixed starting database
-            // and measure the wall time and blocks per second.
-            ScenarioKind::Sync => bail!("the sync scenario is not implemented yet"),
-            // TODO: measure the database size after the sync scenario's block
-            // range, per table if pathfinder can report it.
-            ScenarioKind::DbSize => bail!("the db-size scenario is not implemented yet"),
-            // TODO: measure compile time. A working version (9 fixture
-            // classes grouped by size, interleaved per class) is in
-            // `benchmarks/archive/harness-with-compile.patch`.
-            ScenarioKind::Compile => bail!("the compile scenario is not implemented yet"),
+    /// Set up every implemented scenario, in the order `bench run` runs them.
+    ///
+    /// TODO: more scenarios.
+    /// - `sync`: sync a fixed block range from a fixed starting database and
+    ///   measure the wall time and blocks per second.
+    /// - `db-size`: the database size after that block range, per table if
+    ///   pathfinder can report it.
+    /// - `compile`: compile time. A working version (9 fixture classes grouped
+    ///   by size, interleaved per class) is in
+    ///   `benchmarks/archive/harness-with-compile.patch`.
+    pub fn all() -> Result<Vec<Self>> {
+        // A mock for now, see `rpc.rs`.
+        Ok(vec![Self::Rpc(rpc::RpcScenario)])
+    }
+
+    /// Name of the scenario in the results and the report.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Rpc(_) => "rpc",
         }
     }
 
@@ -67,32 +70,6 @@ impl Scenario {
     pub fn run_iteration(&mut self, order: &[&Binary]) -> Result<Iteration> {
         match self {
             Self::Rpc(scenario) => scenario.run_iteration(order),
-        }
-    }
-}
-
-/// The scenarios `bench run` knows. The value is also the scenario's name on
-/// the command line (`--scenarios rpc,sync`) and in the results.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-pub enum ScenarioKind {
-    /// JSON-RPC load against a running node.
-    Rpc,
-    /// Time to sync a range of blocks.
-    Sync,
-    /// Size of the database after syncing.
-    DbSize,
-    /// Sierra to CASM compilation through `pathfinder compile`.
-    Compile,
-}
-
-impl ScenarioKind {
-    /// Name of the scenario in the results, the same as on the command line.
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Rpc => "rpc",
-            Self::Sync => "sync",
-            Self::DbSize => "db-size",
-            Self::Compile => "compile",
         }
     }
 }

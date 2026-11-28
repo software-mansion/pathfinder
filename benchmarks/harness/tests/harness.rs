@@ -1,6 +1,5 @@
-//! End-to-end tests: `bench run` stops on an unimplemented scenario before
-//! measuring, the mock `rpc` scenario goes through run and compare, and
-//! `bench compare` works on a run directory.
+//! End-to-end tests: the mock `rpc` scenario goes through run and compare,
+//! and `bench compare` works on a run directory.
 
 use std::path::Path;
 
@@ -16,26 +15,8 @@ use pathfinder_bench::results::{
     SUMMARY_MD,
 };
 use pathfinder_bench::run::{run, RunArgs};
-use pathfinder_bench::scenarios::{Binary, ScenarioKind};
+use pathfinder_bench::scenarios::Binary;
 use pathfinder_bench::stats::{Better, Status};
-
-#[test]
-fn unimplemented_scenario_fails_before_measuring() {
-    let dir = tempfile::tempdir().unwrap();
-    let runs = dir.path().join("runs");
-    let args = RunArgs {
-        binaries: vec![Binary {
-            label: "main".into(),
-            path: "/bin/sh".into(),
-        }],
-        scenarios: vec![ScenarioKind::Sync],
-        iterations: 1,
-        output_dir: Some(runs.clone()),
-    };
-    let err = run(&args).unwrap_err().to_string();
-    assert!(err.contains("not implemented"), "{err}");
-    assert!(!runs.exists(), "no run directory should be created");
-}
 
 #[test]
 fn mock_rpc_scenario_runs_end_to_end() {
@@ -48,7 +29,6 @@ fn mock_rpc_scenario_runs_end_to_end() {
                 path: "/bin/sh".into(),
             })
             .collect(),
-        scenarios: vec![ScenarioKind::Rpc],
         iterations: 3,
         output_dir: Some(dir.path().to_path_buf()),
     };

@@ -210,15 +210,27 @@ fn scenario_section(out: &mut String, scenario: &ScenarioSummary, has_baseline: 
     }
 }
 
+/// How to read a report with a baseline. Added at its end.
+const LEGEND: &str = "\
+**Legend**
+
+- ❌ regression, ✅ improvement: the whole confidence interval lies beyond the threshold.
+- ~ no change beyond the threshold, or too much noise to tell.
+- ⚠️ invalid: a binary failed, or there were too few pairs to judge.
+- Δ (paired) is the median of the relative changes `target / baseline − 1` over the iterations. \
+                      95% CI is the bootstrap confidence interval of that median.
+- Only metrics with a threshold get a status. The others are informational.
+";
+
 /// The whole Markdown report: binaries, machine, result line, an overview of
-/// the scenarios and one section per scenario.
+/// the scenarios, one section per scenario and, with a baseline, the legend.
 pub fn render(summary: &Summary) -> String {
     let metadata = &summary.metadata;
     let mut out = String::from("## Benchmark results\n\n");
 
     if !metadata.binaries.is_empty() {
         let sel = &summary.selection;
-        let rows = metadata.binaries.iter().map(|(label, path)| {
+        let rows = metadata.binaries.keys().map(|label| {
             let role = if sel.baseline.as_ref() == Some(label) {
                 "baseline"
             } else if &sel.target == label {
@@ -226,13 +238,9 @@ pub fn render(summary: &Summary) -> String {
             } else {
                 "–"
             };
-            vec![
-                label.clone(),
-                role.to_string(),
-                format!("`{}`", path.display()),
-            ]
+            vec![label.clone(), role.to_string()]
         });
-        out.push_str(&markdown_table(&["Binary", "Role", "Path"], rows));
+        out.push_str(&markdown_table(&["Binary", "Role"], rows));
         out.push('\n');
     }
 
@@ -267,6 +275,9 @@ pub fn render(summary: &Summary) -> String {
     overview(&mut out, summary);
     for scenario in &summary.scenarios {
         scenario_section(&mut out, scenario, summary.has_baseline());
+    }
+    if summary.has_baseline() {
+        out.push_str(LEGEND);
     }
     out
 }
@@ -317,6 +328,7 @@ mod tests {
         assert!(text.contains("**Result: 1 regression**"), "{text}");
         assert!(text.contains("| [rpc](#rpc) | ❌ | 1 | 0 |"), "{text}");
         assert!(text.contains("### rpc"), "{text}");
+        assert!(text.contains("**Legend**"), "{text}");
         assert!(
             text.contains("| latency.p50 | 1.00 s | 1.20 s | +20.0% | +20.0…+20.0% | 5% | ❌ |"),
             "{text}"
@@ -332,5 +344,6 @@ mod tests {
         let data = rows("latency.p50", &[], &[1.0]);
         let text = render(&compare(&data, &cfg(), Metadata::default(), selection).unwrap());
         assert!(text.contains("No baseline"));
+        assert!(!text.contains("**Legend**"));
     }
 }
