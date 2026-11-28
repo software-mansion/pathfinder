@@ -154,7 +154,9 @@ jobs:
   harness:
     name: Build harness
     needs: resolve
-    runs-on: ubuntu-24.04
+    # Same as the build job: a binary built on a newer Ubuntu needs a newer
+    # glibc than the Debian 12 VM image has.
+    runs-on: ubuntu-22.04
     env:
       HARNESS_URL: ${{ needs.resolve.outputs.run_prefix }}/bench
     steps:
